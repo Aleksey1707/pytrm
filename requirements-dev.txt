@@ -1,0 +1,6 @@
+mypy
+flake8
+black
+isort
+pytest
+pre-commit
