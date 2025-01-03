@@ -29,7 +29,11 @@ setup(
     license=pytrm.__license__,
     packages=[
         "pytrm",
+        "pytrm/impls/mongo",
     ],
     python_requires=">=3.10",
     install_requires=install_requires(),
+    extras_require={
+        "mongo-motor": ["motor>=3"],
+    },
 )

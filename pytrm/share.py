@@ -1,0 +1,401 @@
+import abc
+import contextlib
+import enum
+import sys
+from typing import (
+    Any,
+    AsyncContextManager,
+    AsyncIterator,
+    Final,
+    Hashable,
+    Iterable,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Protocol,
+    TypeVar,
+    runtime_checkable,
+)
+
+from pytrm import exceptions
+
+if sys.version_info < (3, 10):
+    from typing_extensions import TypeAlias
+else:
+    from typing import TypeAlias
+
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
+
+Tr: TypeAlias = Any
+SettingsID: TypeAlias = Hashable
+
+
+ContextKey: TypeAlias = Hashable
+ContextValue: TypeAlias = Any
+
+
+class Context(Protocol):
+    """Контекст (immutable)"""
+
+    def find(self, key: ContextKey) -> Optional[ContextValue]:
+        """Найти значение по ключу"""
+
+    def set(self, key: ContextKey, value: ContextValue) -> Self:
+        """Задать значение по ключу"""
+
+    def remove(self, key: ContextKey) -> Self:
+        """Удалить значение по ключу"""
+
+
+class Key(abc.ABC):
+    """Ключ, по которому в хранилище помещаются и достаются транзакции"""
+
+    __slots__ = ("_value",)
+
+    def __init__(self, value: str) -> None:
+        self._value = value
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, self.__class__):
+            return NotImplemented
+
+        return self._value == value._value
+
+    def __hash__(self) -> int:
+        return hash(self._value)
+
+    def __repr__(self) -> str:
+        return "{}({})".format(self.__class__.__name__, self._value)
+
+
+class Propagation(enum.IntEnum):
+    """Правила распространения транзакции"""
+
+    # Поддерживает текущую транзакцию, создает новую если ее не существует
+    REQUIRED = enum.auto()
+
+    # Выполняет во вложенной транзакции
+    NESTED = enum.auto()
+
+    # Поддерживает текущую транзакцию.
+    # Генерирует исключение, если таковая не существует.
+    MANDATORY = enum.auto()
+
+    # Выполняется не транзакционно. Генерирует исключение, если транзакция существует.
+    NEVER = enum.auto()
+
+    # Выполняется без транзакции. Приостанавливает текущую транзакцию, если она существует.
+    NOT_SUPPORTED = enum.auto()
+
+    # Создает новую транзакцию, приостанавливает текущую транзакцию, если она существует.
+    REQUIRES_NEW = enum.auto()
+
+    # Поддерживает текущую транзакцию. Выполняется не транзакционно, если таковая не существует.
+    SUPPORTS = enum.auto()
+
+
+@runtime_checkable
+class Transaction(Protocol):
+    """Абстракция над транзакцией"""
+
+    def is_active(self) -> bool:
+        """Является ли транзакция активной"""
+
+    async def begin(self) -> None:
+        """Начать транзакцию"""
+
+    async def commit(self) -> None:
+        """Зафиксировать транзакцию"""
+
+    async def rollback(self) -> None:
+        """Откатить транзакцию"""
+
+    def unwrap(self) -> Tr:
+        """Распаковать (получить нативную транзакцию)"""
+
+
+class Settings(NamedTuple):
+    """Настройки"""
+
+    id: SettingsID  # Идентификатор
+    key: Key  # Ключ для сохранения транзакции в контекст
+    propagation: Propagation  # Правила распространения транзакции
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, Settings):
+            return NotImplemented
+
+        return self.id == value.id
+
+    def __hash__(self) -> int:
+        return hash(self.id)
+
+
+class SettingsStorage:
+    """Хранилище настроек"""
+
+    def __init__(self, data: Mapping[SettingsID, Settings]) -> None:
+        self._data = data
+
+    @classmethod
+    def create(cls, settings: Iterable[Settings]) -> Self:
+        data = dict((s.id, s) for s in settings)
+        if not data:
+            raise exceptions.NoSettingsException
+
+        return cls(data)
+
+    def get(self, id_: SettingsID) -> Settings:
+        if (settings := self._data.get(id_)) is None:
+            raise exceptions.SettingsNotFoundException
+
+        return settings
+
+
+class ContextManager:
+    """Базовая реализация контекстного менеджера"""
+
+    __slots__ = ()
+
+    def get(self, ctx: Context, key: Key) -> Transaction:
+        transaction = ctx.find(key)
+        if transaction is None:
+            raise exceptions.TransactionNotFoundInContextException
+
+        if not isinstance(transaction, Transaction):
+            raise exceptions.UnknownValueInContextException
+
+        return transaction
+
+    def set(
+        self,
+        ctx: Context,
+        key: Key,
+        transaction: Transaction,
+    ) -> Context:
+        return ctx.set(key, transaction)
+
+    def remove(
+        self,
+        ctx: Context,
+        key: Key,
+    ) -> Context:
+        return ctx.remove(key)
+
+
+DEFAULT_CONTEXT_MANAGER: Final = ContextManager()
+
+
+ContextT = TypeVar("ContextT", bound=Context)
+
+
+class TransactionManager(Protocol[ContextT]):
+
+    def do(
+        self,
+        ctx: ContextT,
+        *,
+        settings: Optional[Settings] = None,
+    ) -> AsyncContextManager[ContextT]:
+        """Выполнить в транзакции"""
+
+
+class BaseTransactionManager(abc.ABC):
+
+    __slots__ = ("_ctx_manager", "_settings")
+
+    _ctx_manager: ContextManager
+    _settings: Settings
+
+    def __init__(
+        self,
+        ctx_manager: ContextManager,
+        settings: Settings,
+    ) -> None:
+        self._ctx_manager = ctx_manager
+        self._settings = settings
+
+    def do(
+        self,
+        ctx: Context,
+        *,
+        settings: Optional[Settings] = None,
+    ) -> AsyncContextManager[Context]:
+        return contextlib.asynccontextmanager(self._do)(ctx, settings)
+
+    async def _do(
+        self,
+        ctx: Context,
+        settings: Optional[Settings],
+    ) -> AsyncIterator[Context]:
+        if settings is None:
+            settings = self._settings
+
+        ctx = await self._initialize(ctx, settings)
+
+        key = settings.key
+        try:
+            transaction = self._ctx_manager.get(ctx, key)
+        except exceptions.TransactionNotFoundInContextException as e:
+            if settings.propagation not in (Propagation.NOT_SUPPORTED, Propagation.SUPPORTS):
+                raise e
+
+            yield ctx
+        else:
+            if transaction.is_active():
+                yield ctx
+            else:
+                await transaction.begin()
+                try:
+                    yield ctx
+                except Exception as e:
+                    await transaction.rollback()
+                    raise e
+                else:
+                    await transaction.commit()
+
+    async def _initialize(self, ctx: Context, settings: Settings) -> Context:
+        key = settings.key
+
+        try:
+            self._ctx_manager.get(ctx, key)
+        except exceptions.TransactionNotFoundInContextException:
+            has_transaction = False
+        else:
+            has_transaction = True
+
+        propagation = settings.propagation
+        if propagation is Propagation.REQUIRED:
+            if has_transaction:
+                return ctx
+        elif propagation is Propagation.NESTED:
+            if has_transaction:
+                transaction = await self._create_nested_transaction()
+                ctx = self._ctx_manager.set(ctx, key, transaction)
+                return ctx
+        elif propagation is Propagation.MANDATORY:
+            if has_transaction:
+                return ctx
+
+            raise exceptions.PropagationMandatoryTrmException
+        elif propagation is Propagation.NEVER:
+            if has_transaction:
+                raise exceptions.PropagationNeverTrmException
+
+            return ctx
+        elif propagation is Propagation.NOT_SUPPORTED:
+            if has_transaction:
+                return self._ctx_manager.remove(ctx, key)
+
+            return ctx
+        elif propagation is Propagation.REQUIRES_NEW:
+            pass
+        elif propagation is Propagation.SUPPORTS:
+            return ctx
+
+        transaction = await self._create_transaction()
+        return self._ctx_manager.set(ctx, key, transaction)
+
+    async def _set_new_transaction(
+        self,
+        ctx: Context,
+        key: Key,
+    ) -> None:
+        transaction = await self._create_transaction()
+        self._ctx_manager.set(ctx, key, transaction)
+
+    @abc.abstractmethod
+    async def _create_transaction(self) -> Transaction: ...
+
+    @abc.abstractmethod
+    async def _create_nested_transaction(self) -> Transaction: ...
+
+
+class _RegistryData(NamedTuple):
+    """Данные реестра"""
+
+    settings_storage: SettingsStorage  # хранилище настроек
+    ctx_manager: ContextManager  # менеджер контекста
+
+
+class Registry:
+    """Реестр"""
+
+    __slots__ = ("_data",)
+
+    _data: Optional[_RegistryData]
+
+    def __init__(self) -> None:
+        self._data = None
+
+    def initialize(
+        self,
+        settings_storage: SettingsStorage,
+        ctx_manager: ContextManager,
+    ) -> None:
+        """
+        Инициализировать реестр
+
+        :param default_settings: настройки по умолчанию
+        :param settings_storage: хранилище настроек
+        :param ctx_manager: менеджер контекста
+        :return: None
+        :raises RegistryIsAlreadyInitializedException: если реестр уже инициализирован
+        """
+        if self._data is not None:
+            raise exceptions.RegistryIsAlreadyInitializedException
+
+        self._data = _RegistryData(
+            settings_storage=settings_storage,
+            ctx_manager=ctx_manager,
+        )
+
+    def get_settings_by_id(self, id_: SettingsID) -> Settings:
+        """
+        Получить настройки по идентификатору
+
+        :param id_: идентификатор настроек
+        :return: настройки по умолчанию
+        :raises RegistryIsNotInitializedException: если реестр не инициализирован
+        :raises SettingsNotFoundException: если настройки не найдены
+        """
+        data = self._get_registry_data()
+        settings = data.settings_storage.get(id_)
+        return settings
+
+    def get_ctx_manager(self) -> ContextManager:
+        """
+        Получить контекстный менеджер
+
+        :return: настройки по умолчанию
+        :raises RegistryIsNotInitializedException: если реестр не инициализирован
+        """
+        data = self._get_registry_data()
+        return data.ctx_manager
+
+    def _get_registry_data(self) -> _RegistryData:
+        if self._data is None:
+            raise exceptions.RegistryIsNotInitializedException
+
+        return self._data
+
+
+DEFAULT_REGISTRY: Final = Registry()
+
+
+def get_native_transaction(
+    ctx: Context,
+    settings_id: SettingsID,
+    *,
+    reg: Registry = DEFAULT_REGISTRY,
+) -> Tr:
+    """Найти нативную транзакцию"""
+    settings = reg.get_settings_by_id(settings_id)
+    ctx_manager = reg.get_ctx_manager()
+    key = settings.key
+
+    transaction = ctx_manager.get(ctx, key)
+    return transaction.unwrap()

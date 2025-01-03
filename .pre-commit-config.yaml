@@ -4,25 +4,30 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: check-added-large-files
+
   - repo: local
     hooks:
       - id: mypy
         name: mypy
-        entry: /bin/bash -c "venv/bin/mypy"
+        entry: venv/bin/python -m mypy
         language: script
+        require_serial: true
+        pass_filenames: false
+
       - id: black
         name: black
-        entry: /bin/bash -c "venv/bin/black --check ."
+        entry: venv/bin/python -m black --check
         language: script
+        types: [python]
+
       - id: isort
         name: isort
-        entry: /bin/bash -c "venv/bin/isort --check ."
+        entry: venv/bin/python -m isort --check
         language: script
+        types: [python]
+
       - id: flake8
         name: flake8
-        entry: /bin/bash -c "venv/bin/flake8"
+        entry: venv/bin/python -m flake8
         language: script
-      - id: pytest
-        name: pytest
-        entry: /bin/bash -c "venv/bin/pytest"
-        language: script
+        types: [python]

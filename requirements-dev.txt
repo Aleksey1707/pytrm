@@ -3,4 +3,6 @@ flake8
 black
 isort
 pytest
+pytest-asyncio
 pre-commit
+testcontainers

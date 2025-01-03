@@ -75,6 +75,10 @@ class TransactionRollbackTrmException(BaseTransactionTrmException):
     default_message = "Ошибка при откате транзакции"
 
 
+class NestedTransactionsNotSupportedTrmException(BaseTransactionTrmException):
+    default_message = "Вложенные транзакции не поддерживаются"
+
+
 # =============================================================================
 # Registry
 # =============================================================================
@@ -103,3 +107,7 @@ class BaseSettingsTrmException(BaseTrmException, metaclass=abc.ABCMeta):
 
 class SettingsNotFoundException(BaseSettingsTrmException):
     default_message = "Настройки не найдены"
+
+
+class NoSettingsException(BaseSettingsTrmException):
+    default_message = "Не переданы настройки"
