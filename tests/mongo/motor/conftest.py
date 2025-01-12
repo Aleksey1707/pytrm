@@ -18,20 +18,6 @@ def mongo_db(mongo_client: AsyncIOMotorClient) -> AsyncIOMotorDatabase:
 
 
 @pytest.fixture(scope="session")
-def settings() -> pytrm.Settings:
-    return pytrm.Settings(
-        id="test",
-        key=trm.Key("test"),
-        propagation=pytrm.Propagation.REQUIRED,
-    )
-
-
-@pytest.fixture(scope="session")
-def registry(settings: pytrm.Settings) -> pytrm.Registry:
-    return pytrm.get_configurated_reg(settings)
-
-
-@pytest.fixture(scope="session")
 def transaction_manager(
     mongo_client: AsyncIOMotorClient,
     settings: pytrm.Settings,

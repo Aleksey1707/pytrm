@@ -4,10 +4,12 @@ PyTRM is a transaction manager as abstraction of database access.
 
 from . import exceptions
 from .configurations import configurate, get_configurated_reg
+from .decorators import transactional, transactional_with_params
 from .impls.mongo import motor
 from .share import (
     Context,
     ContextManager,
+    Key,
     Propagation,
     Registry,
     Settings,

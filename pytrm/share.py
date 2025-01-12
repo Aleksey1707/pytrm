@@ -50,7 +50,7 @@ class Context(Protocol):
         """Удалить значение по ключу"""
 
 
-class Key(abc.ABC):
+class Key:
     """Ключ, по которому в хранилище помещаются и достаются транзакции"""
 
     __slots__ = ("_value",)
@@ -317,8 +317,17 @@ class BaseTransactionManager(abc.ABC):
 class _RegistryData(NamedTuple):
     """Данные реестра"""
 
-    settings_storage: SettingsStorage  # хранилище настроек
-    ctx_manager: ContextManager  # менеджер контекста
+    # Хранилище настроек
+    settings_storage: SettingsStorage
+
+    # Менеджер контекста
+    ctx_manager: ContextManager
+
+    # Имя атрибута, содержащего менеджер транзакций
+    trm_attr_name: Optional[str]
+
+    # Имя атрибута, содержащего настройки менеджера транзакций
+    trm_settings_attr_name: Optional[str]
 
 
 class Registry:
@@ -335,6 +344,8 @@ class Registry:
         self,
         settings_storage: SettingsStorage,
         ctx_manager: ContextManager,
+        trm_attr_name: Optional[str],
+        trm_settings_attr_name: Optional[str],
     ) -> None:
         """
         Инициализировать реестр
@@ -342,6 +353,8 @@ class Registry:
         :param default_settings: настройки по умолчанию
         :param settings_storage: хранилище настроек
         :param ctx_manager: менеджер контекста
+        :param transaction_manager_attr_name: имя атрибута, содержащего менеджер транзакций
+        :param transaction_manager_settings_attr_name: имя атрибута, содержащего настройки менеджера транзакций
         :return: None
         :raises RegistryIsAlreadyInitializedException: если реестр уже инициализирован
         """
@@ -351,6 +364,8 @@ class Registry:
         self._data = _RegistryData(
             settings_storage=settings_storage,
             ctx_manager=ctx_manager,
+            trm_attr_name=trm_attr_name,
+            trm_settings_attr_name=trm_settings_attr_name,
         )
 
     def get_settings_by_id(self, id_: SettingsID) -> Settings:
@@ -375,6 +390,32 @@ class Registry:
         """
         data = self._get_registry_data()
         return data.ctx_manager
+
+    def get_trm_attr_name(self) -> str:
+        """
+        Получить имя атрибута, содержащего менеджер транзакций
+
+        :return: имя атрибута, содержащего менеджер транзакций
+        :raises TrmAttrNameNoAtRegistryException: если реестр не инициализирован
+        """
+        data = self._get_registry_data()
+        if data.trm_attr_name is None:
+            raise exceptions.TrmAttrNameNoAtRegistryException
+
+        return data.trm_attr_name
+
+    def get_trm_settings_attr_name(self) -> str:
+        """
+        Получить имя атрибута, содержащего настройки менеджера транзакций
+
+        :return: имя атрибута, содержащего менеджер транзакций
+        :raises TrmSettingsAttrNameNoAtRegistryException: если реестр не инициализирован
+        """
+        data = self._get_registry_data()
+        if data.trm_settings_attr_name is None:
+            raise exceptions.TrmSettingsAttrNameNoAtRegistryException
+
+        return data.trm_settings_attr_name
 
     def _get_registry_data(self) -> _RegistryData:
         if self._data is None:

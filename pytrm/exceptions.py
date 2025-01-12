@@ -96,6 +96,14 @@ class RegistryIsAlreadyInitializedException(BaseRegistryTrmException):
     default_message = "Реестр уже инициализирован"
 
 
+class TrmAttrNameNoAtRegistryException(BaseRegistryTrmException):
+    default_message = "В реестре не задано имя атрибута, содержащего менеджер транзакций"
+
+
+class TrmSettingsAttrNameNoAtRegistryException(BaseRegistryTrmException):
+    default_message = "В реестре не задано имя атрибута, содержащего настройки менеджера транзакций"
+
+
 # =============================================================================
 # Settings
 # =============================================================================

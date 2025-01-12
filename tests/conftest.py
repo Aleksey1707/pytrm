@@ -1,6 +1,7 @@
 import pytest
 from pytest_asyncio import is_async_test
 
+import pytrm
 from tests import contexts
 
 
@@ -14,3 +15,33 @@ def pytest_collection_modifyitems(items):
 @pytest.fixture
 def context() -> contexts.Context:
     return contexts.Context.empty()
+
+
+@pytest.fixture(scope="session")
+def settings() -> pytrm.Settings:
+    return pytrm.Settings(
+        id="test",
+        key=pytrm.Key("test"),
+        propagation=pytrm.Propagation.REQUIRED,
+    )
+
+
+@pytest.fixture(scope="session")
+def registry(settings: pytrm.Settings) -> pytrm.Registry:
+    return pytrm.get_configurated_reg(
+        "_transaction_manager",
+        "_transaction_manager_settings",
+        settings,
+    )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def init_default_registry(
+    registry: pytrm.Registry,
+    settings: pytrm.Settings,
+) -> None:
+    pytrm.configurate(
+        registry.get_trm_attr_name(),
+        registry.get_trm_settings_attr_name(),
+        settings,
+    )

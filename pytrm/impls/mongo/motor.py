@@ -22,10 +22,6 @@ MongoClient: TypeAlias = AgnosticClient
 MongoSession: TypeAlias = AgnosticClientSession
 
 
-class Key(share.Key):
-    """Ключ для сохранения транзакции в контексте"""
-
-
 class MongoTransaction:
     """Обертка над транзакцией MongoDB"""
 
