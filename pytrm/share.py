@@ -158,6 +158,15 @@ class ContextManager:
     __slots__ = ()
 
     def get(self, ctx: Context, key: Key) -> Transaction:
+        """
+        Получить транзакцию
+
+        :param ctx: контекст
+        :param key: ключ
+        :return: транзакция
+        :raises TransactionNotFoundInContextException: если транзакция не найдена
+        :raises UnknownValueInContextException: если найденное значение не является транзакцией
+        """
         transaction = ctx.find(key)
         if transaction is None:
             raise exceptions.TransactionNotFoundInContextException
@@ -173,6 +182,14 @@ class ContextManager:
         key: Key,
         transaction: Transaction,
     ) -> Context:
+        """
+        Задать значение
+
+        :param ctx: контекст
+        :param key: ключ
+        :param transaction: транзакция
+        :return: контекст
+        """
         return ctx.set(key, transaction)
 
     def remove(
@@ -180,6 +197,13 @@ class ContextManager:
         ctx: Context,
         key: Key,
     ) -> Context:
+        """
+        Удалить значение
+
+        :param ctx: контекст
+        :param key: ключ
+        :return: контекст
+        """
         return ctx.remove(key)
 
 
@@ -319,7 +343,18 @@ def get_native_transaction(
     *,
     reg: Registry = DEFAULT_REGISTRY,
 ) -> Tr:
-    """Найти нативную транзакцию"""
+    """
+    Получить нативную транзакцию
+
+    :param ctx: контекст
+    :param settings_id: ID настроек
+    :param reg: реестр
+    :return: нативная транзакция
+    :raises RegistryIsNotInitializedException: если реестр не инициализирован
+    :raises SettingsNotFoundException: если настройки не найдены
+    :raises TransactionNotFoundInContextException: если транзакция не найдена
+    :raises UnknownValueInContextException: если найденное значение не является транзакцией
+    """
     settings = reg.get_settings_by_id(settings_id)
     ctx_manager = reg.get_ctx_manager()
     key = settings.key
