@@ -1,15 +1,15 @@
 import pytest
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from testcontainers.core.container import DockerContainer
 
 import pytrm
 from pytrm import motor as trm
+from tests.mongo.conftest import CustomDockerContainer
 from tests.mongo.motor.repositories import MotorMongoRepository
 
 
 @pytest.fixture(scope="session")
-def mongo_client(mongo: DockerContainer) -> AsyncIOMotorClient:
-    return AsyncIOMotorClient(mongo.connection_url)  # type: ignore
+def mongo_client(mongo: CustomDockerContainer) -> AsyncIOMotorClient:
+    return AsyncIOMotorClient(mongo.connection_url)
 
 
 @pytest.fixture(scope="session")
