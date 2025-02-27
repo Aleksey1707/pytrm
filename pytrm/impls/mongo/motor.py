@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 
 from motor.core import AgnosticClient, AgnosticClientSession
 
-from pytrm import exceptions, share
+from pytrm import bases, exceptions, share
 
 if sys.version_info < (3, 10):
     from typing_extensions import TypeAlias
@@ -71,7 +71,7 @@ class MongoTransaction:
         return self._session
 
 
-class MongoTransactionManager(share.BaseTransactionManager):
+class MongoTransactionManager(bases.BaseTransactionManager):
     """Менджер транзакций MongoDB"""
 
     __slots__ = ("_client", "_session_data", "_transaction_data")

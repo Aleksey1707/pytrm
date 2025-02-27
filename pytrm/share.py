@@ -1,11 +1,8 @@
-import abc
-import contextlib
 import enum
 import sys
 from typing import (
     Any,
     AsyncContextManager,
-    AsyncIterator,
     Final,
     Hashable,
     Iterable,
@@ -201,117 +198,6 @@ class TransactionManager(Protocol[ContextT]):
         settings: Optional[Settings] = None,
     ) -> AsyncContextManager[ContextT]:
         """Выполнить в транзакции"""
-
-
-class BaseTransactionManager(abc.ABC):
-
-    __slots__ = ("_ctx_manager", "_settings")
-
-    _ctx_manager: ContextManager
-    _settings: Settings
-
-    def __init__(
-        self,
-        ctx_manager: ContextManager,
-        settings: Settings,
-    ) -> None:
-        self._ctx_manager = ctx_manager
-        self._settings = settings
-
-    def do(
-        self,
-        ctx: Context,
-        *,
-        settings: Optional[Settings] = None,
-    ) -> AsyncContextManager[Context]:
-        return contextlib.asynccontextmanager(self._do)(ctx, settings)
-
-    async def _do(
-        self,
-        ctx: Context,
-        settings: Optional[Settings],
-    ) -> AsyncIterator[Context]:
-        if settings is None:
-            settings = self._settings
-
-        ctx = await self._initialize(ctx, settings)
-
-        key = settings.key
-        try:
-            transaction = self._ctx_manager.get(ctx, key)
-        except exceptions.TransactionNotFoundInContextException as e:
-            if settings.propagation not in (Propagation.NOT_SUPPORTED, Propagation.SUPPORTS):
-                raise e
-
-            yield ctx
-        else:
-            if transaction.is_active():
-                yield ctx
-            else:
-                await transaction.begin()
-                try:
-                    yield ctx
-                except Exception as e:
-                    await transaction.rollback()
-                    raise e
-                else:
-                    await transaction.commit()
-
-    async def _initialize(self, ctx: Context, settings: Settings) -> Context:
-        key = settings.key
-
-        try:
-            self._ctx_manager.get(ctx, key)
-        except exceptions.TransactionNotFoundInContextException:
-            has_transaction = False
-        else:
-            has_transaction = True
-
-        propagation = settings.propagation
-        if propagation is Propagation.REQUIRED:
-            if has_transaction:
-                return ctx
-        elif propagation is Propagation.NESTED:
-            if has_transaction:
-                transaction = await self._create_nested_transaction()
-                ctx = self._ctx_manager.set(ctx, key, transaction)
-                return ctx
-        elif propagation is Propagation.MANDATORY:
-            if has_transaction:
-                return ctx
-
-            raise exceptions.PropagationMandatoryTrmException
-        elif propagation is Propagation.NEVER:
-            if has_transaction:
-                raise exceptions.PropagationNeverTrmException
-
-            return ctx
-        elif propagation is Propagation.NOT_SUPPORTED:
-            if has_transaction:
-                return self._ctx_manager.remove(ctx, key)
-
-            return ctx
-        elif propagation is Propagation.REQUIRES_NEW:
-            pass
-        elif propagation is Propagation.SUPPORTS:
-            return ctx
-
-        transaction = await self._create_transaction()
-        return self._ctx_manager.set(ctx, key, transaction)
-
-    async def _set_new_transaction(
-        self,
-        ctx: Context,
-        key: Key,
-    ) -> None:
-        transaction = await self._create_transaction()
-        self._ctx_manager.set(ctx, key, transaction)
-
-    @abc.abstractmethod
-    async def _create_transaction(self) -> Transaction: ...
-
-    @abc.abstractmethod
-    async def _create_nested_transaction(self) -> Transaction: ...
 
 
 class _RegistryData(NamedTuple):

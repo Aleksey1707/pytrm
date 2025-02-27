@@ -5,7 +5,7 @@ from typing import Callable, Optional
 import pytest
 
 import pytrm
-from pytrm import exceptions, share
+from pytrm import bases, exceptions, share
 from tests import contexts
 
 if sys.version_info < (3, 11):
@@ -104,7 +104,7 @@ class DummyTransaction:
         return DummyNativeTransaction()
 
 
-class StubTransactionManager(share.BaseTransactionManager):
+class StubTransactionManager(bases.BaseTransactionManager):
 
     @classmethod
     def create(
