@@ -10,6 +10,8 @@ from typing import (
     NamedTuple,
     Optional,
     Protocol,
+    Tuple,
+    Type,
     TypeVar,
     runtime_checkable,
 )
@@ -214,14 +216,24 @@ ContextT = TypeVar("ContextT", bound=Context)
 
 
 class TransactionManager(Protocol[ContextT]):
+    """Менеджер транзакций"""
 
     def do(
         self,
         ctx: ContextT,
         *,
         settings: Optional[Settings] = None,
+        exclude: Tuple[Type[BaseException], ...] = (),
     ) -> AsyncContextManager[ContextT]:
-        """Выполнить в транзакции"""
+        """
+        Выполнить в транзакции
+
+        :param ctx: контекст
+        :param settings: настройки (если не указаны, то используются настройки по умолчанию)
+        :param exclude: типы исключений, при которых требуется делать фиксацию изменений, вместа отката
+        :return: новый контекст в асинхронном контекстном менеджере Python Core
+        :raises BaseTrmException: если произошла какая-либо ошибка
+        """
 
 
 class _RegistryData(NamedTuple):

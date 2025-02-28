@@ -1,6 +1,6 @@
 import abc
 import contextlib
-from typing import AsyncContextManager, AsyncIterator, Optional
+from typing import AsyncContextManager, AsyncIterator, Optional, Tuple, Type
 
 from pytrm import exceptions, share
 
@@ -25,13 +25,15 @@ class BaseTransactionManager(abc.ABC):
         ctx: share.Context,
         *,
         settings: Optional[share.Settings] = None,
+        exclude: Tuple[Type[BaseException], ...] = (),
     ) -> AsyncContextManager[share.Context]:
-        return contextlib.asynccontextmanager(self._do)(ctx, settings)
+        return contextlib.asynccontextmanager(self._do)(ctx, settings, exclude)
 
     async def _do(
         self,
         ctx: share.Context,
         settings: Optional[share.Settings],
+        exclude: Tuple[Type[BaseException], ...],
     ) -> AsyncIterator[share.Context]:
         if settings is None:
             settings = self._settings
@@ -54,7 +56,11 @@ class BaseTransactionManager(abc.ABC):
                 try:
                     yield ctx
                 except Exception as e:
-                    await transaction.rollback()
+                    if isinstance(e, exclude):
+                        await transaction.commit()
+                    else:
+                        await transaction.rollback()
+
                     raise e
                 else:
                     await transaction.commit()

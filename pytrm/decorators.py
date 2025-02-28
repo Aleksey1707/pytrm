@@ -1,7 +1,8 @@
 import functools
-from typing import Awaitable, Callable, Optional, ParamSpec, TypeAlias, TypeVar
+from typing import Awaitable, Callable, Optional, ParamSpec, Tuple, Type, TypeAlias, TypeVar
 
 from pytrm import share
+from pytrm.utils import marks
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -10,8 +11,9 @@ F: TypeAlias = Callable[P, Awaitable[T]]
 
 
 def transactional_with_params(
-    trm_attr_name: str,
-    trm_settings_attr_name: Optional[str],
+    trm_attr_name: str | marks.NotSetType = marks.NOT_SET,
+    trm_settings_attr_name: Optional[str] | marks.NotSetType = marks.NOT_SET,
+    exclude: Tuple[Type[BaseException], ...] = (),
 ) -> Callable[[F[P, T]], F[P, T]]:
     """Выполнение метода в транзакции (с указанием параметров)"""
 
@@ -22,14 +24,28 @@ def transactional_with_params(
             this = args[0]
             context = kwargs["context"]
 
-            transaction_manager = getattr(this, trm_attr_name)
+            if marks.is_set(trm_attr_name):
+                trm_attr_name_ = trm_attr_name
+            else:
+                trm_attr_name_ = share.DEFAULT_REGISTRY.get_trm_attr_name()
 
-            if trm_settings_attr_name is not None:
-                transaction_manager_settings = getattr(this, trm_settings_attr_name)
+            transaction_manager = getattr(this, trm_attr_name_)
+
+            if marks.is_set(trm_settings_attr_name):
+                trm_settings_attr_name_ = trm_settings_attr_name
+            else:
+                trm_settings_attr_name_ = share.DEFAULT_REGISTRY.get_trm_settings_attr_name()
+
+            if trm_settings_attr_name_ is not None:
+                transaction_manager_settings = getattr(this, trm_settings_attr_name_)
             else:
                 transaction_manager_settings = None
 
-            async with transaction_manager.do(context, settings=transaction_manager_settings) as new_context:
+            async with transaction_manager.do(
+                context,
+                settings=transaction_manager_settings,
+                exclude=exclude,
+            ) as new_context:
                 kwargs["context"] = new_context
                 return await func(*args, **kwargs)
 
