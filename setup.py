@@ -1,6 +1,6 @@
 from typing import List
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 import pytrm
 
@@ -27,11 +27,8 @@ setup(
     author=pytrm.__author__,
     author_email="AlekseyOdi@yandex.ru",
     license=pytrm.__license__,
-    packages=[
-        "pytrm",
-        "pytrm/impls/mongo",
-    ],
-    python_requires=">=3.10",
+    packages=find_packages(),
+    python_requires=">=3.9,<4.0",
     install_requires=install_requires(),
     extras_require={
         "mongo-motor": ["motor>=3"],
