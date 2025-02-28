@@ -20,7 +20,7 @@ class MotorMongoRepository(Repository[Mapping[str, Any], bson.ObjectId]):
         if document is None:
             raise EntityNotFoundRepositoryException
 
-        return document  # type: ignore[no-any-return]
+        return document
 
     async def save(self, entity: Mapping[str, Any], *, context: contexts.Context) -> None:
         session = self._get_session(context)

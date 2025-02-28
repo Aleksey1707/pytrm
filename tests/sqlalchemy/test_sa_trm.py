@@ -1,0 +1,177 @@
+from typing import Any, Final
+
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import sessionmaker
+
+import pytrm
+from pytrm import exceptions
+from tests import contexts
+from tests.sqlalchemy.conftest import test_table
+
+pytestmark = pytest.mark.asyncio
+
+
+async def test_required_propagation(
+    context: contexts.Context,
+    settings: pytrm.Settings,
+    transaction_manager: pytrm.TransactionManager,
+    registry: pytrm.Registry,
+    sessionmaker_: sessionmaker,
+) -> None:
+    ID: Final = 1
+    stmt: Any
+
+    settings = pytrm.Settings(
+        id=settings.id,
+        key=settings.key,
+        propagation=pytrm.Propagation.REQUIRED,
+    )
+
+    assert context.find(settings.key) is None
+
+    async with transaction_manager.do(context) as new_context:
+        assert new_context.find(settings.key) is not None
+
+        stmt = test_table.insert().values(id=ID, value=0)
+
+        session = _get_session(new_context, settings, registry)
+        await session.execute(stmt)
+
+    assert context.find(settings.key) is None
+
+    async with sessionmaker_() as session:
+        stmt = test_table.select().where(test_table.c.id == ID)
+        result = await session.execute(stmt)
+        record = result.one()
+
+    assert record.id == ID
+    assert record.value == 0
+
+
+async def test_nested_propagation(
+    context: contexts.Context,
+    settings: pytrm.Settings,
+    transaction_manager: pytrm.TransactionManager,
+    registry: pytrm.Registry,
+    sessionmaker_: sessionmaker,
+) -> None:
+
+    ID: Final = 2
+    stmt: Any
+
+    async with transaction_manager.do(context) as new_context:
+
+        stmt = test_table.insert().values(id=ID, value=0)
+        session = _get_session(new_context, settings, registry)
+        await session.execute(stmt)
+
+        nested_settings = pytrm.Settings(
+            id=settings.id,
+            key=settings.key,
+            propagation=pytrm.Propagation.NESTED,
+        )
+        try:
+            async with transaction_manager.do(new_context, settings=nested_settings) as new_context2:
+                stmt = test_table.update().where(test_table.c.id == ID).values(value=9)
+                session = _get_session(new_context2, settings, registry)
+                await session.execute(stmt)
+
+                raise RuntimeError("Need rollback nested transaction")
+        except RuntimeError:
+            pass
+
+    async with sessionmaker_() as session:
+        stmt = test_table.select().where(test_table.c.id == ID)
+        result = await session.execute(stmt)
+        record = result.one()
+
+    assert record.id == ID
+    assert record.value == 0
+
+
+async def test_mandatory_propagation(
+    context: contexts.Context,
+    settings: pytrm.Settings,
+    transaction_manager: pytrm.TransactionManager,
+) -> None:
+    settings = pytrm.Settings(
+        id=settings.id,
+        key=settings.key,
+        propagation=pytrm.Propagation.MANDATORY,
+    )
+
+    with pytest.raises(exceptions.PropagationMandatoryTrmException):
+        async with transaction_manager.do(context, settings=settings) as new_context:
+            pass
+
+
+async def test_never_propagation(
+    context: contexts.Context,
+    settings: pytrm.Settings,
+    transaction_manager: pytrm.TransactionManager,
+) -> None:
+    async with transaction_manager.do(context) as new_context:
+
+        never_settings = pytrm.Settings(
+            id=settings.id,
+            key=settings.key,
+            propagation=pytrm.Propagation.NEVER,
+        )
+        with pytest.raises(exceptions.PropagationNeverTrmException):
+            async with transaction_manager.do(new_context, settings=never_settings) as new_context2:
+                pass
+
+
+async def test_not_supported_propagation(
+    context: contexts.Context,
+    settings: pytrm.Settings,
+    transaction_manager: pytrm.TransactionManager,
+) -> None:
+    async with transaction_manager.do(context) as new_context:
+
+        not_supported_settings = pytrm.Settings(
+            id=settings.id,
+            key=settings.key,
+            propagation=pytrm.Propagation.NOT_SUPPORTED,
+        )
+        async with transaction_manager.do(new_context, settings=not_supported_settings) as new_context2:
+            assert new_context2.find(settings.key) is None
+
+
+async def test_requires_new_propagation(
+    context: contexts.Context,
+    settings: pytrm.Settings,
+    transaction_manager: pytrm.TransactionManager,
+) -> None:
+    async with transaction_manager.do(context) as new_context:
+
+        not_supported_settings = pytrm.Settings(
+            id=settings.id,
+            key=settings.key,
+            propagation=pytrm.Propagation.REQUIRES_NEW,
+        )
+        async with transaction_manager.do(new_context, settings=not_supported_settings) as new_context2:
+            assert new_context2.find(settings.key) is not new_context.find(settings.key)
+
+
+async def test_supports_propagation(
+    context: contexts.Context,
+    settings: pytrm.Settings,
+    transaction_manager: pytrm.TransactionManager,
+) -> None:
+    not_supported_settings = pytrm.Settings(
+        id=settings.id,
+        key=settings.key,
+        propagation=pytrm.Propagation.SUPPORTS,
+    )
+    async with transaction_manager.do(context, settings=not_supported_settings) as new_context:
+        assert new_context.find(settings.key) is None
+
+
+def _get_session(context: contexts.Context, settings: pytrm.Settings, reg: pytrm.Registry) -> AsyncSession:
+    session = pytrm.get_native_transaction(context, settings.id, reg=reg)
+    if not isinstance(session, AsyncSession):
+        raise ValueError("wrong sqlalchemy session")
+
+    return session
