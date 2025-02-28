@@ -15,6 +15,23 @@
 
 Если требуется фиксация изменений для конкретных типов исключений, то их можно указать в параметре `exclude` в методе менеджера транзакций `pytrm.TransactionManager.do` и декораторе `pytrm.transactional_with`.
 
+## Установка
+
+Данный пакет не опубликован в PyPI, но его можно установить из Git репозитория.
+
+### Установка через pip:
+
+```sh
+# установка последней версии (нежелательно)
+pip install git+https://github.com/Aleksey1707/pytrm.git@master
+
+# установка конкретной версии
+pip install git+https://github.com/Aleksey1707/pytrm.git@v0.1
+
+# установка конкретной версии с extras
+pip install "pytrm[sqlalchemy] @ git+https://github.com/Aleksey1707/pytrm.git@v0.1"
+```
+
 ## Использование
 
 Для работы с `pytrm` требуется реализация контекста `pytrm.Context`, который является неизменяемой структурой.
@@ -138,7 +155,7 @@ class PersonMongoRepository:
         session = pytrm.find_native_transaction(context, self._settings_id)
         if session is None:
             return None
-        
+
         return cast(AsyncIOMotorClientSession, session)
 
 
