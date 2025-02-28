@@ -1,6 +1,6 @@
 import abc
 import sys
-from typing import ClassVar
+from typing import ClassVar, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
@@ -14,7 +14,7 @@ else:
 
 
 class BaseSqlAlchemyTransaction(abc.ABC):
-    _sessionmaker: ClassVar[sessionmaker | None] = None
+    _sessionmaker: ClassVar[Optional[sessionmaker]] = None
 
     __slots__ = ("_session",)
 

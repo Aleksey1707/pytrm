@@ -35,5 +35,6 @@ setup(
     install_requires=install_requires(),
     extras_require={
         "mongo-motor": ["motor>=3"],
+        "sqlalchemy": ["SQLAlchemy>=2"],
     },
 )

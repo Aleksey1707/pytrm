@@ -6,4 +6,8 @@ lint:
 
 .PHONY: test
 test:
-	PYTHONPATH=. venv/bin/pytest
+	venv/bin/python -m tox
+
+.PHONY: test-fast
+test:
+	venv/bin/python -m pytest

@@ -2,19 +2,14 @@ import copy
 import sys
 from typing import Any, Hashable, MutableMapping, Optional
 
-if sys.version_info < (3, 10):
-    from typing_extensions import TypeAlias
-else:
-    from typing import TypeAlias
-
 if sys.version_info < (3, 11):
     from typing_extensions import Self
 else:
     from typing import Self
 
 
-Key: TypeAlias = Hashable
-Value: TypeAlias = Any
+Key = Hashable
+Value = Any
 
 
 class Context:

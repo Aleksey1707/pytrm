@@ -18,22 +18,17 @@ from typing import (
 
 from pytrm import exceptions
 
-if sys.version_info < (3, 10):
-    from typing_extensions import TypeAlias
-else:
-    from typing import TypeAlias
-
 if sys.version_info < (3, 11):
     from typing_extensions import Self
 else:
     from typing import Self
 
-NativeTransaction: TypeAlias = Any
-SettingsID: TypeAlias = Hashable
+NativeTransaction = Any
+SettingsID = Hashable
 
 
-ContextKey: TypeAlias = Hashable
-ContextValue: TypeAlias = Any
+ContextKey = Hashable
+ContextValue = Any
 
 
 class Context(Protocol):

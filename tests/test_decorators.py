@@ -54,7 +54,7 @@ async def test_transactional_with_params(
 # ==============================
 
 
-@dataclasses.dataclass(slots=True, frozen=True)
+@dataclasses.dataclass(frozen=True)
 class StubTransactionalService:
 
     _transaction_manager: pytrm.TransactionManager
@@ -65,7 +65,7 @@ class StubTransactionalService:
         func(context)
 
 
-@dataclasses.dataclass(slots=True, frozen=True)
+@dataclasses.dataclass(frozen=True)
 class StubTransactionalWithParamsService:
 
     _trm: pytrm.TransactionManager

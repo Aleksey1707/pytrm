@@ -31,3 +31,10 @@ repos:
         entry: venv/bin/python -m flake8
         language: script
         types: [python]
+
+      - id: pytest_tox
+        name: pytest_tox
+        entry: venv/bin/python -m tox
+        language: script
+        require_serial: true
+        pass_filenames: false

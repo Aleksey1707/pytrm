@@ -1,5 +1,11 @@
 import functools
-from typing import Awaitable, Callable, Optional, ParamSpec, Tuple, Type, TypeAlias, TypeVar
+import sys
+from typing import Awaitable, Callable, Optional, Tuple, Type, TypeVar, Union
+
+if sys.version_info < (3, 10):
+    from typing_extensions import ParamSpec
+else:
+    from typing import ParamSpec
 
 from pytrm import share
 from pytrm.utils import marks
@@ -7,12 +13,12 @@ from pytrm.utils import marks
 P = ParamSpec("P")
 T = TypeVar("T")
 
-F: TypeAlias = Callable[P, Awaitable[T]]
+F = Callable[P, Awaitable[T]]
 
 
 def transactional_with_params(
-    trm_attr_name: str | marks.NotSetType = marks.NOT_SET,
-    trm_settings_attr_name: Optional[str] | marks.NotSetType = marks.NOT_SET,
+    trm_attr_name: Union[str, marks.NotSetType] = marks.NOT_SET,
+    trm_settings_attr_name: Union[Optional[str], marks.NotSetType] = marks.NOT_SET,
     exclude: Tuple[Type[BaseException], ...] = (),
 ) -> Callable[[F[P, T]], F[P, T]]:
     """Выполнение метода в транзакции (с указанием параметров)"""

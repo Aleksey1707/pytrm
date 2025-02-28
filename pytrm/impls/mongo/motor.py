@@ -5,21 +5,16 @@ from motor.core import AgnosticClient, AgnosticClientSession
 
 from pytrm import bases, exceptions, share
 
-if sys.version_info < (3, 10):
-    from typing_extensions import TypeAlias
-else:
-    from typing import TypeAlias
-
 if sys.version_info < (3, 11):
     from typing_extensions import Self
 else:
     from typing import Self
 
-MongoSessionData: TypeAlias = Dict[str, Any]
-MongoTransactionData: TypeAlias = Dict[str, Any]
+MongoSessionData = Dict[str, Any]
+MongoTransactionData = Dict[str, Any]
 
-MongoClient: TypeAlias = AgnosticClient
-MongoSession: TypeAlias = AgnosticClientSession
+MongoClient = AgnosticClient
+MongoSession = AgnosticClientSession
 
 
 class MongoTransaction:

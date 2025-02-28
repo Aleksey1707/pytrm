@@ -1,4 +1,10 @@
-from typing import Any, Final, TypeGuard, TypeVar
+import sys
+from typing import Any, Final, TypeVar, Union
+
+if sys.version_info < (3, 10):
+    from typing_extensions import TypeGuard
+else:
+    from typing import TypeGuard
 
 T = TypeVar("T")
 
@@ -11,11 +17,11 @@ def is_any_set(*args: Any) -> bool:
     return any(filter(lambda item: not isinstance(item, NotSetType), args))
 
 
-def is_notset(value: Any | NotSetType) -> TypeGuard[NotSetType]:
+def is_notset(value: Union[Any, NotSetType]) -> TypeGuard[NotSetType]:
     return isinstance(value, NotSetType)
 
 
-def is_set(value: T | NotSetType) -> TypeGuard[T]:
+def is_set(value: Union[T, NotSetType]) -> TypeGuard[T]:
     return not is_notset(value)
 
 
