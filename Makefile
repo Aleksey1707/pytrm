@@ -9,5 +9,5 @@ test:
 	venv/bin/python -m tox
 
 .PHONY: test-fast
-test:
+test-fast:
 	venv/bin/python -m pytest
