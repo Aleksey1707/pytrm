@@ -1,7 +1,7 @@
 import pytest
 
 import pytrm
-from pytrm import null as trm
+from pytrm.impls import null as trm
 
 
 @pytest.fixture(scope="session")

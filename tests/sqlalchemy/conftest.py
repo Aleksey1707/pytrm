@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from testcontainers.postgres import PostgresContainer
 
 import pytrm
-from pytrm import sqlalchemy as trm
+from pytrm.impls import sqlalchemy as trm
 
 pytestmark = pytest.mark.asyncio
 

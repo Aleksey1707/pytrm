@@ -2,7 +2,7 @@ import pytest
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 import pytrm
-from pytrm import motor as trm
+from pytrm.impls.mongo import motor as trm
 from tests.mongo.conftest import CustomDockerContainer
 from tests.mongo.motor.repositories import MotorMongoRepository
 

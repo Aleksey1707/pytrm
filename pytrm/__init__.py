@@ -2,11 +2,9 @@
 PyTRM is a transaction manager as abstraction of database access.
 """
 
-from . import exceptions
+from . import exceptions, impls
 from .configurations import configurate, get_configurated_reg
 from .decorators import transactional, transactional_with
-from .impls import null, sqlalchemy
-from .impls.mongo import motor
 from .share import (
     Context,
     ContextManager,
@@ -18,6 +16,7 @@ from .share import (
     SettingsID,
     Transaction,
     TransactionManager,
+    find_native_transaction,
     get_native_transaction,
 )
 

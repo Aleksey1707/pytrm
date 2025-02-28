@@ -154,6 +154,24 @@ class ContextManager:
 
     __slots__ = ()
 
+    def find(self, ctx: Context, key: Key) -> Optional[Transaction]:
+        """
+        Найти транзакцию
+
+        :param ctx: контекст
+        :param key: ключ
+        :return: транзакция или None
+        :raises UnknownValueInContextException: если найденное значение не является транзакцией
+        """
+        transaction = ctx.find(key)
+        if transaction is None:
+            return None
+
+        if not isinstance(transaction, Transaction):
+            raise exceptions.UnknownValueInContextException
+
+        return transaction
+
     def get(self, ctx: Context, key: Key) -> Transaction:
         """
         Получить транзакцию
@@ -164,12 +182,9 @@ class ContextManager:
         :raises TransactionNotFoundInContextException: если транзакция не найдена
         :raises UnknownValueInContextException: если найденное значение не является транзакцией
         """
-        transaction = ctx.find(key)
+        transaction = self.find(ctx, key)
         if transaction is None:
             raise exceptions.TransactionNotFoundInContextException
-
-        if not isinstance(transaction, Transaction):
-            raise exceptions.UnknownValueInContextException
 
         return transaction
 
@@ -342,6 +357,34 @@ class Registry:
 
 
 DEFAULT_REGISTRY: Final = Registry()
+
+
+def find_native_transaction(
+    ctx: Context,
+    settings_id: SettingsID,
+    *,
+    reg: Registry = DEFAULT_REGISTRY,
+) -> Optional[NativeTransaction]:
+    """
+    Найти нативную транзакцию
+
+    :param ctx: контекст
+    :param settings_id: ID настроек
+    :param reg: реестр
+    :return: нативная транзакция или None
+    :raises RegistryIsNotInitializedException: если реестр не инициализирован
+    :raises SettingsNotFoundException: если настройки не найдены
+    :raises UnknownValueInContextException: если найденное значение не является транзакцией
+    """
+    settings = reg.get_settings_by_id(settings_id)
+    ctx_manager = reg.get_ctx_manager()
+    key = settings.key
+
+    transaction = ctx_manager.find(ctx, key)
+    if transaction is None:
+        return None
+
+    return transaction.unwrap()
 
 
 def get_native_transaction(
