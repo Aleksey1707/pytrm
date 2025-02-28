@@ -47,7 +47,7 @@ class BaseSqlAlchemyTransaction(abc.ABC):
     async def rollback(self) -> None:
         await self._session.rollback()
 
-    def unwrap(self) -> share.Tr:
+    def unwrap(self) -> share.NativeTransaction:
         return self._session
 
 

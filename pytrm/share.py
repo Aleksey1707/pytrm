@@ -28,7 +28,7 @@ if sys.version_info < (3, 11):
 else:
     from typing import Self
 
-Tr: TypeAlias = Any
+NativeTransaction: TypeAlias = Any
 SettingsID: TypeAlias = Hashable
 
 
@@ -112,7 +112,7 @@ class Transaction(Protocol):
     async def rollback(self) -> None:
         """Откатить транзакцию"""
 
-    def unwrap(self) -> Tr:
+    def unwrap(self) -> NativeTransaction:
         """Распаковать (получить нативную транзакцию)"""
 
 
@@ -354,7 +354,7 @@ def get_native_transaction(
     settings_id: SettingsID,
     *,
     reg: Registry = DEFAULT_REGISTRY,
-) -> Tr:
+) -> NativeTransaction:
     """
     Получить нативную транзакцию
 

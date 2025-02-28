@@ -100,7 +100,7 @@ class DummyTransaction:
     async def rollback(self) -> None:
         self._is_active = False
 
-    def unwrap(self) -> pytrm.Tr:
+    def unwrap(self) -> pytrm.NativeTransaction:
         return DummyNativeTransaction()
 
 

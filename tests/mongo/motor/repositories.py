@@ -30,5 +30,5 @@ class MotorMongoRepository(Repository[Mapping[str, Any], bson.ObjectId]):
         session = self._get_session(context)
         await self._collection.delete_one({"_id": id_}, session=session)
 
-    def _get_session(self, context: contexts.Context) -> pytrm.Tr:
+    def _get_session(self, context: contexts.Context) -> pytrm.NativeTransaction:
         return pytrm.get_native_transaction(context, self._settings_id, reg=self._reg)

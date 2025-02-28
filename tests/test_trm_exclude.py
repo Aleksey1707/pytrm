@@ -80,7 +80,7 @@ class DummyTransaction:
         self._is_active = False
         self.is_rollbacked = True
 
-    def unwrap(self) -> pytrm.Tr:
+    def unwrap(self) -> pytrm.NativeTransaction:
         return DummyNativeTransaction()
 
 

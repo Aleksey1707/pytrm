@@ -67,7 +67,7 @@ class MongoTransaction:
         await self._session.abort_transaction()
         await self._session.end_session()
 
-    def unwrap(self) -> share.Tr:
+    def unwrap(self) -> share.NativeTransaction:
         return self._session
 
 
