@@ -16,7 +16,7 @@ T = TypeVar("T")
 F = Callable[P, Awaitable[T]]
 
 
-def transactional_with_params(
+def transactional_with(
     trm_attr_name: Union[str, marks.NotSetType] = marks.NOT_SET,
     trm_settings_attr_name: Union[Optional[str], marks.NotSetType] = marks.NOT_SET,
     exclude: Tuple[Type[BaseException], ...] = (),

@@ -71,7 +71,7 @@ class StubTransactionalWithParamsService:
     _trm: pytrm.TransactionManager
     _trm_settings: Optional[pytrm.Settings]
 
-    @pytrm.transactional_with_params("_trm", "_trm_settings")
+    @pytrm.transactional_with("_trm", "_trm_settings")
     async def process(self, func: Callable[[contexts.Context], None], *, context: contexts.Context) -> None:
         func(context)
 
