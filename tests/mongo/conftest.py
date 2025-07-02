@@ -1,4 +1,5 @@
 import random
+import uuid
 from typing import Iterator
 
 import pytest
@@ -20,7 +21,7 @@ def mongo() -> Iterator[CustomDockerContainer]:
 
     mongo_container = CustomDockerContainer("mongo:7.0", connection_url)
 
-    mongo_container.with_name("pytrm_mongo_test")
+    mongo_container.with_name(f"pytrm_mongo_test_{uuid.uuid4().hex}")
     mongo_container.with_bind_ports(container=mongo_bind_port, host=mongo_bind_port)
     mongo_container.with_command(f"--port={mongo_bind_port} --replSet=rs")
     mongo_container.start()
