@@ -20,7 +20,7 @@ from .share import TransactionManager as TransactionManager
 from .share import find_native_transaction as find_native_transaction
 from .share import get_native_transaction as get_native_transaction
 
-__version__ = "0.1.0"
-__date__ = "2024-12-31"
+__version__ = "0.1.1"
+__date__ = "2025-07-27"
 __author__ = "Aleksey Odinokov"
 __license__ = "MIT"

@@ -149,6 +149,9 @@ class SettingsStorage:
         return settings
 
 
+ContextT = TypeVar("ContextT", bound=Context)
+
+
 class ContextManager:
     """Базовая реализация контекстного менеджера"""
 
@@ -190,10 +193,10 @@ class ContextManager:
 
     def set(
         self,
-        ctx: Context,
+        ctx: ContextT,
         key: Key,
         transaction: Transaction,
-    ) -> Context:
+    ) -> ContextT:
         """
         Задать значение
 
@@ -206,9 +209,9 @@ class ContextManager:
 
     def remove(
         self,
-        ctx: Context,
+        ctx: ContextT,
         key: Key,
-    ) -> Context:
+    ) -> ContextT:
         """
         Удалить значение
 
@@ -222,10 +225,7 @@ class ContextManager:
 DEFAULT_CONTEXT_MANAGER: Final = ContextManager()
 
 
-ContextT = TypeVar("ContextT", bound=Context)
-
-
-class TransactionManager(Protocol[ContextT]):
+class TransactionManager(Protocol):
     """Менеджер транзакций"""
 
     def do(

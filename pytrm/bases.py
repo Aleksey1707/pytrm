@@ -22,19 +22,19 @@ class BaseTransactionManager(abc.ABC):
 
     def do(
         self,
-        ctx: share.Context,
+        ctx: share.ContextT,
         *,
         settings: Optional[share.Settings] = None,
         exclude: Tuple[Type[BaseException], ...] = (),
-    ) -> AsyncContextManager[share.Context]:
+    ) -> AsyncContextManager[share.ContextT]:
         return contextlib.asynccontextmanager(self._do)(ctx, settings, exclude)
 
     async def _do(
         self,
-        ctx: share.Context,
+        ctx: share.ContextT,
         settings: Optional[share.Settings],
         exclude: Tuple[Type[BaseException], ...],
-    ) -> AsyncIterator[share.Context]:
+    ) -> AsyncIterator[share.ContextT]:
         if settings is None:
             settings = self._settings
 
@@ -65,7 +65,7 @@ class BaseTransactionManager(abc.ABC):
                 else:
                     await transaction.commit()
 
-    async def _initialize(self, ctx: share.Context, settings: share.Settings) -> share.Context:
+    async def _initialize(self, ctx: share.ContextT, settings: share.Settings) -> share.ContextT:
         key = settings.key
 
         try:

@@ -10,17 +10,17 @@ class NullTransactionManager:
 
     def do(
         self,
-        ctx: share.Context,
+        ctx: share.ContextT,
         settings: Optional[share.Settings] = None,
         exclude: Tuple[Type[BaseException], ...] = (),
-    ) -> AsyncContextManager[share.Context]:
+    ) -> AsyncContextManager[share.ContextT]:
         return contextlib.asynccontextmanager(self._do)(ctx, settings, exclude)
 
     async def _do(
         self,
-        ctx: share.Context,
+        ctx: share.ContextT,
         settings: Optional[share.Settings],
         exclude: Tuple[Type[BaseException], ...],
-    ) -> AsyncIterator[share.Context]:
+    ) -> AsyncIterator[share.ContextT]:
         ctx = copy.copy(ctx)
         yield ctx
