@@ -1,6 +1,15 @@
 import functools
 import sys
-from typing import Awaitable, Callable, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Coroutine,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 if sys.version_info < (3, 10):
     from typing_extensions import ParamSpec
@@ -13,7 +22,7 @@ from pytrm.utils import marks
 P = ParamSpec("P")
 T = TypeVar("T")
 
-F = Callable[P, Awaitable[T]]
+F = Callable[P, Coroutine[Any, Any, T]]
 
 
 def transactional_with(
