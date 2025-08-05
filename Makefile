@@ -15,7 +15,7 @@ format:
 
 .PHONY: test
 test:
-	venv/bin/python -m tox
+	venv/bin/python -m tox -p auto
 
 .PHONY: test-fast
 test-fast:
