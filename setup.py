@@ -28,6 +28,8 @@ setup(
     author_email="AlekseyOdi@yandex.ru",
     license=pytrm.__license__,
     packages=find_packages(),
+    include_package_data=True,
+    package_data={"pytrm": ["py.typed"]},
     python_requires=">=3.9,<4.0",
     install_requires=install_requires(),
     extras_require={
