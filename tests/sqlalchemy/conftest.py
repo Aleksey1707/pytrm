@@ -83,7 +83,7 @@ def sessionmaker_(
 def transaction_manager(
     setup: None,
     sessionmaker_: sessionmaker,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     registry: pytrm.Registry,
 ) -> pytrm.TransactionManager:
     transaction_manager = trm.SqlAlchemyTransactionManager.create(sessionmaker_, settings.id, reg=registry)

@@ -18,8 +18,8 @@ def context() -> contexts.Context:
 
 
 @pytest.fixture(scope="session")
-def settings() -> pytrm.Settings:
-    return pytrm.Settings(
+def settings() -> pytrm.UniqSettings:
+    return pytrm.UniqSettings(
         id="test",
         key=pytrm.Key("test"),
         propagation=pytrm.Propagation.REQUIRED,
@@ -27,7 +27,7 @@ def settings() -> pytrm.Settings:
 
 
 @pytest.fixture(scope="session")
-def registry(settings: pytrm.Settings) -> pytrm.Registry:
+def registry(settings: pytrm.UniqSettings) -> pytrm.Registry:
     return pytrm.get_configurated_reg(
         "_transaction_manager",
         "_transaction_manager_settings",
@@ -38,7 +38,7 @@ def registry(settings: pytrm.Settings) -> pytrm.Registry:
 @pytest.fixture(scope="session", autouse=True)
 def init_default_registry(
     registry: pytrm.Registry,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
 ) -> None:
     pytrm.configurate(
         registry.get_trm_attr_name(),

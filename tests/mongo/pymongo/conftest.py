@@ -29,7 +29,7 @@ def mongo_db(mongo_client: AsyncMongoClient) -> AsyncDatabase:
 @pytest.fixture(scope="session")
 def transaction_manager(
     mongo_client: AsyncMongoClient,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     registry: pytrm.Registry,
 ) -> pytrm.TransactionManager:
     transaction_manager: pytrm.TransactionManager
@@ -40,7 +40,7 @@ def transaction_manager(
 @pytest.fixture(scope="session")
 def repository(
     mongo_db: AsyncDatabase,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     registry: pytrm.Registry,
 ) -> PymongoMongoRepository:
     collection = mongo_db["test"]

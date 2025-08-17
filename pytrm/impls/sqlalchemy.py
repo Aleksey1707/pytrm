@@ -73,7 +73,7 @@ class SqlAlchemyTransactionManager(bases.BaseTransactionManager):
     def __init__(
         self,
         ctx_manager: share.ContextManager,
-        settings: share.Settings,
+        settings: share.UniqSettings,
         sessionmaker_: sessionmaker,
     ) -> None:
         super().__init__(ctx_manager, settings)

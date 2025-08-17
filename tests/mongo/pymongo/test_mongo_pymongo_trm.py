@@ -12,11 +12,11 @@ pytestmark = pytest.mark.asyncio
 
 async def test_required_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
     repository: PymongoMongoRepository,
 ) -> None:
-    settings = pytrm.Settings(
+    settings = pytrm.UniqSettings(
         id=settings.id,
         key=settings.key,
         propagation=pytrm.Propagation.REQUIRED,
@@ -56,13 +56,13 @@ async def test_required_propagation(
 
 async def test_nested_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
 
     async with transaction_manager.do(context) as new_context:
 
-        nested_settings = pytrm.Settings(
+        nested_settings = pytrm.UniqSettings(
             id=settings.id,
             key=settings.key,
             propagation=pytrm.Propagation.NESTED,
@@ -74,10 +74,10 @@ async def test_nested_propagation(
 
 async def test_mandatory_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
-    settings = pytrm.Settings(
+    settings = pytrm.UniqSettings(
         id=settings.id,
         key=settings.key,
         propagation=pytrm.Propagation.MANDATORY,
@@ -90,12 +90,12 @@ async def test_mandatory_propagation(
 
 async def test_never_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
     async with transaction_manager.do(context) as new_context:
 
-        never_settings = pytrm.Settings(
+        never_settings = pytrm.UniqSettings(
             id=settings.id,
             key=settings.key,
             propagation=pytrm.Propagation.NEVER,
@@ -107,12 +107,12 @@ async def test_never_propagation(
 
 async def test_not_supported_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
     async with transaction_manager.do(context) as new_context:
 
-        not_supported_settings = pytrm.Settings(
+        not_supported_settings = pytrm.UniqSettings(
             id=settings.id,
             key=settings.key,
             propagation=pytrm.Propagation.NOT_SUPPORTED,
@@ -123,12 +123,12 @@ async def test_not_supported_propagation(
 
 async def test_requires_new_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
     async with transaction_manager.do(context) as new_context:
 
-        not_supported_settings = pytrm.Settings(
+        not_supported_settings = pytrm.UniqSettings(
             id=settings.id,
             key=settings.key,
             propagation=pytrm.Propagation.REQUIRES_NEW,
@@ -139,10 +139,10 @@ async def test_requires_new_propagation(
 
 async def test_supports_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
-    not_supported_settings = pytrm.Settings(
+    not_supported_settings = pytrm.UniqSettings(
         id=settings.id,
         key=settings.key,
         propagation=pytrm.Propagation.SUPPORTS,

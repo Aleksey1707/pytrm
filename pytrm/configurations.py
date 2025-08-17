@@ -4,7 +4,7 @@ from pytrm import share
 def configurate(
     trm_attr_name: str,
     trm_settings_attr_name: str,
-    *settings: share.Settings,
+    *settings: share.UniqSettings,
 ) -> None:
     """Сконфигурировать (реестр по умолчанию)"""
     settings_storage = share.SettingsStorage.create(settings)
@@ -20,7 +20,7 @@ def configurate(
 def get_configurated_reg(
     trm_attr_name: str,
     trm_settings_attr_name: str,
-    *settings: share.Settings,
+    *settings: share.UniqSettings,
 ) -> share.Registry:
     """Получить сконфигурированный реестр"""
     settings_storage = share.SettingsStorage.create(settings)

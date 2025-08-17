@@ -14,7 +14,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_required_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
     registry: pytrm.Registry,
     sessionmaker_: sessionmaker,
@@ -22,7 +22,7 @@ async def test_required_propagation(
     ID: Final = 1
     stmt: Any
 
-    settings = pytrm.Settings(
+    settings = pytrm.UniqSettings(
         id=settings.id,
         key=settings.key,
         propagation=pytrm.Propagation.REQUIRED,
@@ -51,7 +51,7 @@ async def test_required_propagation(
 
 async def test_nested_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
     registry: pytrm.Registry,
     sessionmaker_: sessionmaker,
@@ -66,7 +66,7 @@ async def test_nested_propagation(
         session = _get_session(new_context, settings, registry)
         await session.execute(stmt)
 
-        nested_settings = pytrm.Settings(
+        nested_settings = pytrm.UniqSettings(
             id=settings.id,
             key=settings.key,
             propagation=pytrm.Propagation.NESTED,
@@ -92,10 +92,10 @@ async def test_nested_propagation(
 
 async def test_mandatory_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
-    settings = pytrm.Settings(
+    settings = pytrm.UniqSettings(
         id=settings.id,
         key=settings.key,
         propagation=pytrm.Propagation.MANDATORY,
@@ -108,12 +108,12 @@ async def test_mandatory_propagation(
 
 async def test_never_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
     async with transaction_manager.do(context) as new_context:
 
-        never_settings = pytrm.Settings(
+        never_settings = pytrm.UniqSettings(
             id=settings.id,
             key=settings.key,
             propagation=pytrm.Propagation.NEVER,
@@ -125,12 +125,12 @@ async def test_never_propagation(
 
 async def test_not_supported_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
     async with transaction_manager.do(context) as new_context:
 
-        not_supported_settings = pytrm.Settings(
+        not_supported_settings = pytrm.UniqSettings(
             id=settings.id,
             key=settings.key,
             propagation=pytrm.Propagation.NOT_SUPPORTED,
@@ -141,12 +141,12 @@ async def test_not_supported_propagation(
 
 async def test_requires_new_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
     async with transaction_manager.do(context) as new_context:
 
-        not_supported_settings = pytrm.Settings(
+        not_supported_settings = pytrm.UniqSettings(
             id=settings.id,
             key=settings.key,
             propagation=pytrm.Propagation.REQUIRES_NEW,
@@ -157,10 +157,10 @@ async def test_requires_new_propagation(
 
 async def test_supports_propagation(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
-    not_supported_settings = pytrm.Settings(
+    not_supported_settings = pytrm.UniqSettings(
         id=settings.id,
         key=settings.key,
         propagation=pytrm.Propagation.SUPPORTS,
@@ -169,7 +169,7 @@ async def test_supports_propagation(
         assert new_context.find(settings.key) is None
 
 
-def _get_session(context: contexts.Context, settings: pytrm.Settings, reg: pytrm.Registry) -> AsyncSession:
+def _get_session(context: contexts.Context, settings: pytrm.UniqSettings, reg: pytrm.Registry) -> AsyncSession:
     session = pytrm.get_native_transaction(context, settings.id, reg=reg)
     if not isinstance(session, AsyncSession):
         raise ValueError("wrong sqlalchemy session")

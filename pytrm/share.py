@@ -1,3 +1,4 @@
+import dataclasses
 import enum
 import sys
 from typing import (
@@ -111,38 +112,36 @@ class Transaction(Protocol):
         """Распаковать (получить нативную транзакцию)"""
 
 
-class Settings(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class Settings:
     """Настройки"""
 
-    id: SettingsID  # Идентификатор
     key: Key  # Ключ для сохранения транзакции в контекст
     propagation: Propagation  # Правила распространения транзакции
 
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, Settings):
-            return NotImplemented
 
-        return self.id == value.id
+@dataclasses.dataclass(frozen=True)
+class UniqSettings(Settings):
+    """Настройки"""
 
-    def __hash__(self) -> int:
-        return hash(self.id)
+    id: SettingsID  # Идентификатор
 
 
 class SettingsStorage:
     """Хранилище настроек"""
 
-    def __init__(self, data: Mapping[SettingsID, Settings]) -> None:
+    def __init__(self, data: Mapping[SettingsID, UniqSettings]) -> None:
         self._data = data
 
     @classmethod
-    def create(cls, settings: Iterable[Settings]) -> Self:
+    def create(cls, settings: Iterable[UniqSettings]) -> Self:
         data = dict((s.id, s) for s in settings)
         if not data:
             raise exceptions.NoSettingsException
 
         return cls(data)
 
-    def get(self, id_: SettingsID) -> Settings:
+    def get(self, id_: SettingsID) -> UniqSettings:
         if (settings := self._data.get(id_)) is None:
             raise exceptions.SettingsNotFoundException
 
@@ -300,7 +299,7 @@ class Registry:
             trm_settings_attr_name=trm_settings_attr_name,
         )
 
-    def get_settings_by_id(self, id_: SettingsID) -> Settings:
+    def get_settings_by_id(self, id_: SettingsID) -> UniqSettings:
         """
         Получить настройки по идентификатору
 

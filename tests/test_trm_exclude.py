@@ -17,7 +17,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_exclude_commit(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
     try:
@@ -33,7 +33,7 @@ async def test_exclude_commit(
 
 async def test_exclude_rollback(
     context: contexts.Context,
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
     try:
@@ -110,7 +110,7 @@ class StubTransactionManager(bases.BaseTransactionManager):
 
 @pytest.fixture(scope="module")
 def transaction_manager(
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
 ) -> pytrm.TransactionManager:
     transaction_manager: pytrm.TransactionManager
     transaction_manager = StubTransactionManager.create(settings.id)

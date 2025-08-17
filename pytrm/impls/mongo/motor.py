@@ -74,7 +74,7 @@ class MongoTransactionManager(bases.BaseTransactionManager):
     def __init__(
         self,
         ctx_manager: share.ContextManager,
-        settings: share.Settings,
+        settings: share.UniqSettings,
         client: MongoClient,
         session_data: Optional[MongoSessionData],
         transaction_data: Optional[MongoTransactionData],

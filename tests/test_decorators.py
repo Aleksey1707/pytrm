@@ -19,7 +19,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_transactional(
     service: "StubTransactionalService",
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     registry: pytrm.Registry,
     context: contexts.Context,
 ) -> None:
@@ -36,7 +36,7 @@ async def test_transactional(
 
 async def test_transactional_with_params(
     with_params_service: "StubTransactionalWithParamsService",
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
     registry: pytrm.Registry,
     context: contexts.Context,
 ) -> None:
@@ -58,7 +58,7 @@ async def test_transactional_with_params(
 class StubTransactionalService:
 
     _transaction_manager: pytrm.TransactionManager
-    _transaction_manager_settings: Optional[pytrm.Settings]
+    _transaction_manager_settings: Optional[pytrm.UniqSettings]
 
     @pytrm.transactional
     async def process(self, func: Callable[[contexts.Context], None], *, context: contexts.Context) -> None:
@@ -69,7 +69,7 @@ class StubTransactionalService:
 class StubTransactionalWithParamsService:
 
     _trm: pytrm.TransactionManager
-    _trm_settings: Optional[pytrm.Settings]
+    _trm_settings: Optional[pytrm.UniqSettings]
 
     @pytrm.transactional_with("_trm", "_trm_settings")
     async def process(self, func: Callable[[contexts.Context], None], *, context: contexts.Context) -> None:
@@ -130,7 +130,7 @@ class StubTransactionManager(bases.BaseTransactionManager):
 
 @pytest.fixture(scope="module")
 def transaction_manager(
-    settings: pytrm.Settings,
+    settings: pytrm.UniqSettings,
 ) -> pytrm.TransactionManager:
     transaction_manager: pytrm.TransactionManager
     transaction_manager = StubTransactionManager.create(settings.id)
