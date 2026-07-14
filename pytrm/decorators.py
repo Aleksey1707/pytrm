@@ -28,6 +28,7 @@ F = Callable[P, Coroutine[Any, Any, T]]
 def transactional_with(
     trm_attr_name: Union[str, marks.NotSet] = marks.NOT_SET,
     trm_settings_attr_name: Union[Optional[str], marks.NotSet] = marks.NOT_SET,
+    propagation: Optional[share.Propagation] = None,
     exclude: Tuple[Type[BaseException], ...] = (),
 ) -> Callable[[F[P, T]], F[P, T]]:
     """
@@ -35,6 +36,7 @@ def transactional_with(
 
     :param trm_attr_name: имя атрибута, содержащего менеджер транзакций
     :param trm_settings_attr_name: имя атрибута, содержащего настройки менеджера транзакций
+    :param propagation: правило распространения транзакции (переопределяет значение из настроек)
     :param exclude: типы исключений, при которых требуется фиксация изменений вместо отката
     :return: декоратор метода
     :raises RegistryIsNotInitializedException: если реестр не инициализирован
@@ -49,27 +51,28 @@ def transactional_with(
             this = args[0]
             context = kwargs["context"]
 
-            if marks.is_set(trm_attr_name):
-                trm_attr_name_ = trm_attr_name
-            else:
-                trm_attr_name_ = share.DEFAULT_REGISTRY.get_trm_attr_name()
+            trm_attr_name_ = marks.value_or(
+                trm_attr_name,
+                share.DEFAULT_REGISTRY.get_trm_attr_name(),
+            )
 
-            transaction_manager = getattr(this, trm_attr_name_)
+            trm = getattr(this, trm_attr_name_)
 
-            if marks.is_set(trm_settings_attr_name):
-                trm_settings_attr_name_ = trm_settings_attr_name
-            else:
-                trm_settings_attr_name_ = share.DEFAULT_REGISTRY.get_trm_settings_attr_name()
+            trm_settings_attr_name_ = marks.value_or(
+                trm_settings_attr_name,
+                share.DEFAULT_REGISTRY.get_trm_settings_attr_name(),
+            )
 
             if trm_settings_attr_name_ is not None:
-                transaction_manager_settings = getattr(this, trm_settings_attr_name_)
+                trm_settings = getattr(this, trm_settings_attr_name_)
             else:
-                transaction_manager_settings = None
+                trm_settings = None
 
-            async with transaction_manager.do(
+            async with trm.do(
                 context,
-                settings=transaction_manager_settings,
+                settings=trm_settings,
                 exclude=exclude,
+                propagation=propagation,
             ) as new_context:
                 kwargs["context"] = new_context
                 return await func(*args, **kwargs)
@@ -100,10 +103,10 @@ def transactional(func: F[P, T]) -> F[P, T]:
         this = args[0]
         context = kwargs["context"]
 
-        transaction_manager = getattr(this, trm_attr_name)
-        transaction_manager_settings = getattr(this, trm_settings_attr_name, None)
+        trm = getattr(this, trm_attr_name)
+        trm_settings = getattr(this, trm_settings_attr_name, None)
 
-        async with transaction_manager.do(context, settings=transaction_manager_settings) as new_context:
+        async with trm.do(context, settings=trm_settings) as new_context:
             kwargs["context"] = new_context
             return await func(*args, **kwargs)
 

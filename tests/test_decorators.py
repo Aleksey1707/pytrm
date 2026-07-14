@@ -48,6 +48,53 @@ async def test_transactional_with_params(
     assert context.find(settings.key) is None
 
 
+async def test_transactional_with_propagation_override_explicit_settings(
+    transaction_manager: pytrm.TransactionManager,
+    settings: pytrm.UniqSettings,
+    context: contexts.Context,
+) -> None:
+    # given: настройки компонента с REQUIRED, декоратор переопределяет на REQUIRES_NEW
+    required_settings = dataclasses.replace(settings, propagation=pytrm.Propagation.REQUIRED)
+    service = StubTransactionalWithPropagationService(
+        _trm=transaction_manager,
+        _trm_settings=required_settings,
+    )
+
+    # when: вызов внутри уже открытой транзакции
+    outer_transaction = None
+    inner_transaction = None
+    async with transaction_manager.do(context) as outer_context:
+        outer_transaction = outer_context.find(settings.key)
+        inner_context = await service.process_isolated(context=outer_context)
+        inner_transaction = inner_context.find(settings.key)
+
+    # then: внутренняя транзакция отделена от внешней
+    assert inner_transaction is not outer_transaction
+
+
+async def test_transactional_with_propagation_override_when_settings_none(
+    transaction_manager: pytrm.TransactionManager,
+    settings: pytrm.UniqSettings,
+    context: contexts.Context,
+) -> None:
+    # given: настройки компонента отсутствуют, override применяется к дефолту менеджера
+    service = StubTransactionalWithPropagationService(
+        _trm=transaction_manager,
+        _trm_settings=None,
+    )
+
+    # when: вызов внутри уже открытой транзакции
+    outer_transaction = None
+    inner_transaction = None
+    async with transaction_manager.do(context) as outer_context:
+        outer_transaction = outer_context.find(settings.key)
+        inner_context = await service.process_isolated(context=outer_context)
+        inner_transaction = inner_context.find(settings.key)
+
+    # then: внутренняя транзакция отделена от внешней
+    assert inner_transaction is not outer_transaction
+
+
 @dataclasses.dataclass(frozen=True)
 class StubTransactionalService:
     _transaction_manager: pytrm.TransactionManager
@@ -66,6 +113,16 @@ class StubTransactionalWithParamsService:
     @pytrm.transactional_with("_trm", "_trm_settings")
     async def process(self, func: Callable[[contexts.Context], None], *, context: contexts.Context) -> None:
         func(context)
+
+
+@dataclasses.dataclass(frozen=True)
+class StubTransactionalWithPropagationService:
+    _trm: pytrm.TransactionManager
+    _trm_settings: Optional[pytrm.UniqSettings]
+
+    @pytrm.transactional_with("_trm", "_trm_settings", propagation=pytrm.Propagation.REQUIRES_NEW)
+    async def process_isolated(self, *, context: contexts.Context) -> contexts.Context:
+        return context
 
 
 @pytest.fixture(scope="module")

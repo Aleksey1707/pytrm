@@ -70,6 +70,22 @@ def test_settings_storage_get_returns_settings() -> None:
     assert storage.get("test") == settings
 
 
+def test_settings_with_propagation_returns_new_instance_with_changed_propagation() -> None:
+    settings = pytrm.UniqSettings(
+        id="test",
+        key=pytrm.Key("test"),
+        propagation=pytrm.Propagation.REQUIRED,
+    )
+
+    new_settings = settings.with_propagation(pytrm.Propagation.REQUIRES_NEW)
+
+    assert new_settings is not settings
+    assert new_settings.propagation is pytrm.Propagation.REQUIRES_NEW
+    assert new_settings.id == settings.id
+    assert new_settings.key == settings.key
+    assert settings.propagation is pytrm.Propagation.REQUIRED
+
+
 def test_registry_raises_when_not_initialized() -> None:
     registry = share.Registry()
 

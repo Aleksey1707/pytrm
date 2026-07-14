@@ -27,6 +27,7 @@ class BaseTransactionManager(abc.ABC):
         *,
         settings: Optional[share.Settings] = None,
         exclude: Tuple[Type[BaseException], ...] = (),
+        propagation: Optional[share.Propagation] = None,
     ) -> AsyncContextManager[share.ContextT]:
         """
         Выполнить в транзакции
@@ -34,19 +35,24 @@ class BaseTransactionManager(abc.ABC):
         :param ctx: контекст
         :param settings: настройки (если не указаны, используются настройки по умолчанию)
         :param exclude: типы исключений, при которых требуется фиксация изменений вместо отката
+        :param propagation: правило распространения транзакции (переопределяет значение из настроек)
         :return: асинхронный контекстный менеджер с новым контекстом
         :raises BaseTrmException: если произошла ошибка при работе с транзакцией
         """
-        return contextlib.asynccontextmanager(self._do)(ctx, settings, exclude)
+        return contextlib.asynccontextmanager(self._do)(ctx, settings, exclude, propagation)
 
     async def _do(
         self,
         ctx: share.ContextT,
         settings: Optional[share.Settings],
         exclude: Tuple[Type[BaseException], ...],
+        propagation: Optional[share.Propagation],
     ) -> AsyncIterator[share.ContextT]:
         if settings is None:
             settings = self._settings
+
+        if propagation is not None:
+            settings = settings.with_propagation(propagation)
 
         ctx = await self._initialize(ctx, settings)
 

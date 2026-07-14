@@ -119,6 +119,15 @@ class Settings:
     key: Key  # Ключ для сохранения транзакции в контекст
     propagation: Propagation  # Правила распространения транзакции
 
+    def with_propagation(self, propagation: Propagation) -> Self:
+        """
+        Получить копию настроек с изменённым правилом распространения транзакции
+
+        :param propagation: правило распространения транзакции
+        :return: новый экземпляр настроек
+        """
+        return dataclasses.replace(self, propagation=propagation)
+
 
 @dataclasses.dataclass(frozen=True)
 class UniqSettings(Settings):
@@ -233,6 +242,7 @@ class TransactionManager(Protocol):
         *,
         settings: Optional[Settings] = None,
         exclude: Tuple[Type[BaseException], ...] = (),
+        propagation: Optional[Propagation] = None,
     ) -> AsyncContextManager[ContextT]:
         """
         Выполнить в транзакции
@@ -240,6 +250,7 @@ class TransactionManager(Protocol):
         :param ctx: контекст
         :param settings: настройки (если не указаны, то используются настройки по умолчанию)
         :param exclude: типы исключений, при которых требуется делать фиксацию изменений, вместа отката
+        :param propagation: правило распространения транзакции (переопределяет значение из настроек)
         :return: новый контекст в асинхронном контекстном менеджере Python Core
         :raises BaseTrmException: если произошла какая-либо ошибка
         """
