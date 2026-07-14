@@ -55,26 +55,6 @@ class BaseTransactionTrmException(BaseTrmException, metaclass=abc.ABCMeta):
     """Базовое исключение транзакции"""
 
 
-class CriticalTransactionTrmException(BaseTransactionTrmException):
-    default_message = "Ошибка при работе с транзакцией"
-
-
-class TransactionAlreadyClosedTrmException(BaseTransactionTrmException):
-    default_message = "Транзакция уже закрыта"
-
-
-class TransactionStartTrmException(BaseTransactionTrmException):
-    default_message = "Ошибка при старте транзакции"
-
-
-class TransactionCommitTrmException(BaseTransactionTrmException):
-    default_message = "Ошибка при завершении транзакции"
-
-
-class TransactionRollbackTrmException(BaseTransactionTrmException):
-    default_message = "Ошибка при откате транзакции"
-
-
 class NestedTransactionsNotSupportedTrmException(BaseTransactionTrmException):
     default_message = "Вложенные транзакции не поддерживаются"
 
