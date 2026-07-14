@@ -1,15 +1,14 @@
 from typing import Any, Hashable, Mapping
 
 import bson
-from motor.motor_asyncio import AsyncIOMotorCollection
 
 import pytrm
 from tests import contexts
 from tests.repositories import EntityNotFoundRepositoryException, Repository
 
 
-class MotorMongoRepository(Repository[Mapping[str, Any], bson.ObjectId]):
-    def __init__(self, collection: AsyncIOMotorCollection, settings_id: Hashable, reg: pytrm.Registry) -> None:
+class BaseMongoRepository(Repository[Mapping[str, Any], bson.ObjectId]):
+    def __init__(self, collection: Any, settings_id: Hashable, reg: pytrm.Registry) -> None:
         self._collection = collection
         self._settings_id = settings_id
         self._reg = reg

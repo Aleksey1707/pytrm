@@ -1,8 +1,7 @@
 PROJECT_DIR = $(shell pwd)
 
-.PHONY: build
-build:
-	uv build
+.PHONY: default
+default: format lint test-fast
 
 .PHONY: lint
 lint:
@@ -21,4 +20,8 @@ test:
 
 .PHONY: test-fast
 test-fast:
-	uv run pytest
+	uv run pytest -m "not integration"
+
+.PHONY: build
+build:
+	uv build

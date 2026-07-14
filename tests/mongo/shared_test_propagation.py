@@ -1,83 +1,69 @@
 import dataclasses
-from typing import Any, Final
 
+import bson
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import sessionmaker
 
 import pytrm
 from pytrm import exceptions
 from tests import contexts
-from tests.sqlalchemy.conftest import test_table
+from tests.mongo.base_repos import BaseMongoRepository
+from tests.repositories import EntityNotFoundRepositoryException
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
+pytestmark = pytest.mark.asyncio
 
 
 async def test_required_propagation(
     context: contexts.Context,
     settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
-    registry: pytrm.Registry,
-    sessionmaker_: sessionmaker,
+    repository: BaseMongoRepository,
 ) -> None:
-    # given: запись для вставки, транзакции ещё нет
-    ID: Final = 1
-    stmt: Any
+    # given: данные для сохранения, транзакции ещё нет
     required_settings = dataclasses.replace(settings, propagation=pytrm.Propagation.REQUIRED)
+    _id = bson.ObjectId()
+    data = dict(
+        _id=_id,
+        a="a",
+        b=1,
+        c=True,
+    )
     assert context.find(required_settings.key) is None
 
-    # when: вставляем запись в транзакции
+    # when: сохраняем сущность в транзакции
     async with transaction_manager.do(context) as new_context:
         assert new_context.find(required_settings.key) is not None
-        stmt = test_table.insert().values(id=ID, value=0)
-        session = _get_session(new_context, required_settings, registry)
-        await session.execute(stmt)
+        await repository.save(data, context=new_context)
+
+    # then: сущность читается как во внешней, так и во вложенной транзакции
+    async with transaction_manager.do(context) as new_context:
+        db_data = await repository.get(_id, context=new_context)
+        assert db_data == data
+
+        async with transaction_manager.do(new_context) as new_context2:
+            db_data = await repository.get(_id, context=new_context2)
+            assert db_data == data
+
+        # and: удаляем сущность в той же транзакции
+        await repository.delete(_id, context=new_context)
+
+    # then: после удаления сущность больше не найти
+    async with transaction_manager.do(context) as new_context:
+        with pytest.raises(EntityNotFoundRepositoryException):
+            await repository.get(_id, context=new_context)
 
     assert context.find(required_settings.key) is None
-
-    # then: запись зафиксирована и видна вне транзакции
-    async with sessionmaker_() as session:
-        stmt = test_table.select().where(test_table.c.id == ID)
-        result = await session.execute(stmt)
-        record = result.one()
-
-    assert record.id == ID
-    assert record.value == 0
 
 
 async def test_nested_propagation(
     context: contexts.Context,
     settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
-    registry: pytrm.Registry,
-    sessionmaker_: sessionmaker,
 ) -> None:
-    # given: запись в родительской транзакции
-    ID: Final = 2
-    stmt: Any
-
     async with transaction_manager.do(context) as new_context:
-        stmt = test_table.insert().values(id=ID, value=0)
-        session = _get_session(new_context, settings, registry)
-        await session.execute(stmt)
-
-        # when: вложенная транзакция обновляет запись и откатывается
         nested_settings = dataclasses.replace(settings, propagation=pytrm.Propagation.NESTED)
-        with pytest.raises(RuntimeError, match="Need rollback nested transaction"):
+        with pytest.raises(exceptions.NestedTransactionsNotSupportedTrmException):
             async with transaction_manager.do(new_context, settings=nested_settings) as new_context2:
-                stmt = test_table.update().where(test_table.c.id == ID).values(value=9)
-                session = _get_session(new_context2, settings, registry)
-                await session.execute(stmt)
-                raise RuntimeError("Need rollback nested transaction")
-
-    # then: изменения из вложенной транзакции не сохранились
-    async with sessionmaker_() as session:
-        stmt = test_table.select().where(test_table.c.id == ID)
-        result = await session.execute(stmt)
-        record = result.one()
-
-    assert record.id == ID
-    assert record.value == 0
+                pass
 
 
 async def test_mandatory_propagation(
@@ -134,11 +120,3 @@ async def test_supports_propagation(
     supports_settings = dataclasses.replace(settings, propagation=pytrm.Propagation.SUPPORTS)
     async with transaction_manager.do(context, settings=supports_settings) as new_context:
         assert new_context.find(settings.key) is None
-
-
-def _get_session(context: contexts.Context, settings: pytrm.UniqSettings, reg: pytrm.Registry) -> AsyncSession:
-    session = pytrm.get_native_transaction(context, settings.id, reg=reg)
-    if not isinstance(session, AsyncSession):
-        raise ValueError("wrong sqlalchemy session")
-
-    return session

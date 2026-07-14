@@ -4,7 +4,7 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 import pytrm
 from pytrm.impls.mongo import motor as trm
 from tests.mongo.conftest import CustomDockerContainer
-from tests.mongo.motor.repositories import MotorMongoRepository
+from tests.mongo.motor.repos import MotorMongoRepository
 
 
 @pytest.fixture(scope="session")

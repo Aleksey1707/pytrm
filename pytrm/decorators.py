@@ -26,11 +26,21 @@ F = Callable[P, Coroutine[Any, Any, T]]
 
 
 def transactional_with(
-    trm_attr_name: Union[str, marks.NotSetType] = marks.NOT_SET,
-    trm_settings_attr_name: Union[Optional[str], marks.NotSetType] = marks.NOT_SET,
+    trm_attr_name: Union[str, marks.NotSet] = marks.NOT_SET,
+    trm_settings_attr_name: Union[Optional[str], marks.NotSet] = marks.NOT_SET,
     exclude: Tuple[Type[BaseException], ...] = (),
 ) -> Callable[[F[P, T]], F[P, T]]:
-    """Выполнение метода в транзакции (с указанием параметров)"""
+    """
+    Декоратор выполнения метода в транзакции с указанием параметров
+
+    :param trm_attr_name: имя атрибута, содержащего менеджер транзакций
+    :param trm_settings_attr_name: имя атрибута, содержащего настройки менеджера транзакций
+    :param exclude: типы исключений, при которых требуется фиксация изменений вместо отката
+    :return: декоратор метода
+    :raises RegistryIsNotInitializedException: если реестр не инициализирован
+    :raises TrmAttrNameNoAtRegistryException: если имя атрибута менеджера не задано в реестре
+    :raises TrmSettingsAttrNameNoAtRegistryException: если имя атрибута настроек не задано в реестре
+    """
 
     def wrapped(func: F[P, T]) -> F[P, T]:
 
@@ -70,7 +80,17 @@ def transactional_with(
 
 
 def transactional(func: F[P, T]) -> F[P, T]:
-    """Выполнение метода в транзакции"""
+    """
+    Декоратор выполнения метода в транзакции
+
+    Имена атрибутов менеджера транзакций и настроек берутся из реестра по умолчанию.
+
+    :param func: декорируемый асинхронный метод
+    :return: обёрнутый метод
+    :raises RegistryIsNotInitializedException: если реестр не инициализирован
+    :raises TrmAttrNameNoAtRegistryException: если имя атрибута менеджера не задано в реестре
+    :raises TrmSettingsAttrNameNoAtRegistryException: если имя атрибута настроек не задано в реестре
+    """
 
     @functools.wraps(func)
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:

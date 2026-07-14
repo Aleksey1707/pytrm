@@ -10,7 +10,7 @@ from pymongo.asynchronous.database import AsyncDatabase
 import pytrm
 from pytrm.impls.mongo import pymongo as trm
 from tests.mongo.conftest import CustomDockerContainer
-from tests.mongo.pymongo.repositories import PymongoMongoRepository
+from tests.mongo.pymongo.repos import PymongoMongoRepository
 
 
 @pytest_asyncio.fixture(scope="session")

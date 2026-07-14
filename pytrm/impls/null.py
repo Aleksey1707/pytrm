@@ -14,6 +14,14 @@ class NullTransactionManager:
         settings: Optional[share.Settings] = None,
         exclude: Tuple[Type[BaseException], ...] = (),
     ) -> AsyncContextManager[share.ContextT]:
+        """
+        Выполнить в транзакции (без изменений)
+
+        :param ctx: контекст
+        :param settings: настройки (игнорируются)
+        :param exclude: типы исключений (игнорируются)
+        :return: асинхронный контекстный менеджер с копией контекста
+        """
         return contextlib.asynccontextmanager(self._do)(ctx, settings, exclude)
 
     async def _do(

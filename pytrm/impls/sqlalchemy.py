@@ -14,6 +14,8 @@ else:
 
 
 class BaseSqlAlchemyTransaction(abc.ABC):
+    """Базовая обёртка над транзакцией SqlAlchemy"""
+
     _sessionmaker: ClassVar[Optional[sessionmaker]] = None
 
     __slots__ = ("_session",)
@@ -29,6 +31,12 @@ class BaseSqlAlchemyTransaction(abc.ABC):
         cls,
         sessionmaker: sessionmaker,
     ) -> Self:
+        """
+        Создать транзакцию
+
+        :param sessionmaker: фабрика сессий SqlAlchemy
+        :return: экземпляр транзакции
+        """
         if cls._sessionmaker is None:
             cls._sessionmaker = sessionmaker
 
@@ -36,18 +44,31 @@ class BaseSqlAlchemyTransaction(abc.ABC):
         return cls(session)
 
     def is_active(self) -> bool:
+        """
+        Проверить, активна ли транзакция
+
+        :return: True, если транзакция активна
+        """
         return self._session.in_transaction()
 
     @abc.abstractmethod
-    async def begin(self) -> None: ...
+    async def begin(self) -> None:
+        """Начать транзакцию"""
 
     async def commit(self) -> None:
+        """Зафиксировать транзакцию"""
         await self._session.commit()
 
     async def rollback(self) -> None:
+        """Откатить транзакцию"""
         await self._session.rollback()
 
     def unwrap(self) -> share.NativeTransaction:
+        """
+        Получить нативную сессию SqlAlchemy
+
+        :return: сессия SqlAlchemy
+        """
         return self._session
 
 
@@ -55,6 +76,7 @@ class SqlAlchemyTransaction(BaseSqlAlchemyTransaction):
     """Обертка над транзакцией SqlAlchemy"""
 
     async def begin(self) -> None:
+        """Начать транзакцию"""
         await self._session.begin()
 
 
@@ -62,6 +84,7 @@ class SqlAlchemyNestedTransaction(BaseSqlAlchemyTransaction):
     """Обертка над вложенной транзакцией SqlAlchemy"""
 
     async def begin(self) -> None:
+        """Начать вложенную транзакцию"""
         await self._session.begin_nested()
 
 
@@ -87,6 +110,16 @@ class SqlAlchemyTransactionManager(bases.BaseTransactionManager):
         *,
         reg: share.Registry = share.DEFAULT_REGISTRY,
     ) -> Self:
+        """
+        Создать менеджер транзакций SqlAlchemy
+
+        :param sessionmaker_: фабрика сессий SqlAlchemy
+        :param settings_id: идентификатор настроек
+        :param reg: реестр
+        :return: менеджер транзакций
+        :raises RegistryIsNotInitializedException: если реестр не инициализирован
+        :raises SettingsNotFoundException: если настройки не найдены
+        """
         ctx_manager = reg.get_ctx_manager()
         settings = reg.get_settings_by_id(settings_id)
 

@@ -37,6 +37,14 @@ class MongoTransaction:
         session_data: Optional[MongoSessionData] = None,
         transaction_data: Optional[MongoTransactionData] = None,
     ) -> Self:
+        """
+        Создать транзакцию MongoDB
+
+        :param client: клиент MongoDB
+        :param session_data: параметры сессии
+        :param transaction_data: параметры транзакции
+        :return: экземпляр транзакции
+        """
         if session_data is None:
             session_data = dict()
 
@@ -44,9 +52,15 @@ class MongoTransaction:
         return cls(session, transaction_data)
 
     def is_active(self) -> bool:
+        """
+        Проверить, активна ли транзакция
+
+        :return: True, если транзакция активна
+        """
         return self._session.in_transaction  # type: ignore
 
     async def begin(self) -> None:
+        """Начать транзакцию"""
         if self._transaction_data is None:
             transaction_data = {}
         else:
@@ -55,14 +69,21 @@ class MongoTransaction:
         self._session.start_transaction(**transaction_data)
 
     async def commit(self) -> None:
+        """Зафиксировать транзакцию"""
         await self._session.commit_transaction()
         await self._session.end_session()
 
     async def rollback(self) -> None:
+        """Откатить транзакцию"""
         await self._session.abort_transaction()
         await self._session.end_session()
 
     def unwrap(self) -> share.NativeTransaction:
+        """
+        Получить нативную сессию MongoDB
+
+        :return: сессия MongoDB
+        """
         return self._session
 
 
@@ -94,6 +115,18 @@ class MongoTransactionManager(bases.BaseTransactionManager):
         *,
         reg: share.Registry = share.DEFAULT_REGISTRY,
     ) -> Self:
+        """
+        Создать менеджер транзакций MongoDB
+
+        :param client: клиент MongoDB
+        :param settings_id: идентификатор настроек
+        :param session_data: параметры сессии
+        :param transaction_data: параметры транзакции
+        :param reg: реестр
+        :return: менеджер транзакций
+        :raises RegistryIsNotInitializedException: если реестр не инициализирован
+        :raises SettingsNotFoundException: если настройки не найдены
+        """
         ctx_manager = reg.get_ctx_manager()
         settings = reg.get_settings_by_id(settings_id)
 

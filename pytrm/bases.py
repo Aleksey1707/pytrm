@@ -6,6 +6,8 @@ from pytrm import exceptions, share
 
 
 class BaseTransactionManager(abc.ABC):
+    """Базовая реализация менеджера транзакций"""
+
     __slots__ = ("_ctx_manager", "_settings")
 
     _ctx_manager: share.ContextManager
@@ -26,6 +28,15 @@ class BaseTransactionManager(abc.ABC):
         settings: Optional[share.Settings] = None,
         exclude: Tuple[Type[BaseException], ...] = (),
     ) -> AsyncContextManager[share.ContextT]:
+        """
+        Выполнить в транзакции
+
+        :param ctx: контекст
+        :param settings: настройки (если не указаны, используются настройки по умолчанию)
+        :param exclude: типы исключений, при которых требуется фиксация изменений вместо отката
+        :return: асинхронный контекстный менеджер с новым контекстом
+        :raises BaseTrmException: если произошла ошибка при работе с транзакцией
+        """
         return contextlib.asynccontextmanager(self._do)(ctx, settings, exclude)
 
     async def _do(
