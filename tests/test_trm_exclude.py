@@ -55,12 +55,10 @@ class NeedToCommitException(Exception):
 
 
 class DummyNativeTransaction:
-
     __slosts__ = ()
 
 
 class DummyTransaction:
-
     def __init__(self) -> None:
         self._is_active = False
         self.is_commited = False
@@ -85,7 +83,6 @@ class DummyTransaction:
 
 
 class StubTransactionManager(bases.BaseTransactionManager):
-
     @classmethod
     def create(
         cls,

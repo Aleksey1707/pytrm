@@ -11,36 +11,29 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: venv/bin/python -m mypy
-        language: script
+        entry: uv run mypy
+        language: system
         require_serial: true
         pass_filenames: false
         fail_fast: true
 
-      - id: black
-        name: black
-        entry: venv/bin/python -m black --check
-        language: script
+      - id: ruff-check
+        name: ruff-check
+        entry: uv run ruff check --fix
+        language: system
         types: [python]
         fail_fast: true
 
-      - id: isort
-        name: isort
-        entry: venv/bin/python -m isort --check
-        language: script
-        types: [python]
-        fail_fast: true
-
-      - id: flake8
-        name: flake8
-        entry: venv/bin/python -m flake8
-        language: script
+      - id: ruff-format
+        name: ruff-format
+        entry: uv run ruff format --check
+        language: system
         types: [python]
         fail_fast: true
 
       - id: pytest_tox
         name: pytest_tox
-        entry: venv/bin/python -m tox -p auto
-        language: script
+        entry: uv run tox -p auto
+        language: system
         require_serial: true
         pass_filenames: false

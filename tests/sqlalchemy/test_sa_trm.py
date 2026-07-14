@@ -61,7 +61,6 @@ async def test_nested_propagation(
     stmt: Any
 
     async with transaction_manager.do(context) as new_context:
-
         stmt = test_table.insert().values(id=ID, value=0)
         session = _get_session(new_context, settings, registry)
         await session.execute(stmt)
@@ -112,7 +111,6 @@ async def test_never_propagation(
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
     async with transaction_manager.do(context) as new_context:
-
         never_settings = pytrm.UniqSettings(
             id=settings.id,
             key=settings.key,
@@ -129,7 +127,6 @@ async def test_not_supported_propagation(
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
     async with transaction_manager.do(context) as new_context:
-
         not_supported_settings = pytrm.UniqSettings(
             id=settings.id,
             key=settings.key,
@@ -145,7 +142,6 @@ async def test_requires_new_propagation(
     transaction_manager: pytrm.TransactionManager,
 ) -> None:
     async with transaction_manager.do(context) as new_context:
-
         not_supported_settings = pytrm.UniqSettings(
             id=settings.id,
             key=settings.key,

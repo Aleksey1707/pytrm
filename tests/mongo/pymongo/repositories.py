@@ -9,7 +9,6 @@ from tests.repositories import EntityNotFoundRepositoryException, Repository
 
 
 class PymongoMongoRepository(Repository[Mapping[str, Any], bson.ObjectId]):
-
     def __init__(self, collection: AsyncCollection, settings_id: Hashable, reg: pytrm.Registry) -> None:
         self._collection = collection
         self._settings_id = settings_id

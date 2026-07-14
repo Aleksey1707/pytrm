@@ -13,7 +13,6 @@ Value = Any
 
 
 class Context:
-
     __slots__ = ("_data",)
 
     def __init__(self, data: MutableMapping[Key, Value]) -> None:

@@ -1,22 +1,24 @@
 PROJECT_DIR = $(shell pwd)
 
+.PHONY: build
+build:
+	uv build
+
 .PHONY: lint
 lint:
-	venv/bin/python -m mypy
-	venv/bin/python -m black --check .
-	venv/bin/python -m isort --check .
-	venv/bin/python -m flake8
+	uv run mypy
+	uv run ruff format --check .
+	uv run ruff check .
 
 .PHONY: format
 format:
-	venv/bin/python -m black .
-	venv/bin/python -m isort .
-	venv/bin/python -m autoflake .
+	uv run ruff format .
+	uv run ruff check --fix .
 
 .PHONY: test
 test:
-	venv/bin/python -m tox -p auto
+	uv run tox -p auto
 
 .PHONY: test-fast
 test-fast:
-	venv/bin/python -m pytest
+	uv run pytest

@@ -6,7 +6,6 @@ from pytrm import exceptions, share
 
 
 class BaseTransactionManager(abc.ABC):
-
     __slots__ = ("_ctx_manager", "_settings")
 
     _ctx_manager: share.ContextManager

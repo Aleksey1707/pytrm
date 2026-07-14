@@ -56,7 +56,6 @@ async def test_transactional_with_params(
 
 @dataclasses.dataclass(frozen=True)
 class StubTransactionalService:
-
     _transaction_manager: pytrm.TransactionManager
     _transaction_manager_settings: Optional[pytrm.UniqSettings]
 
@@ -67,7 +66,6 @@ class StubTransactionalService:
 
 @dataclasses.dataclass(frozen=True)
 class StubTransactionalWithParamsService:
-
     _trm: pytrm.TransactionManager
     _trm_settings: Optional[pytrm.UniqSettings]
 
@@ -77,12 +75,10 @@ class StubTransactionalWithParamsService:
 
 
 class DummyNativeTransaction:
-
     __slosts__ = ()
 
 
 class DummyTransaction:
-
     __slots__ = ("_is_active",)
 
     def __init__(self) -> None:
@@ -105,7 +101,6 @@ class DummyTransaction:
 
 
 class StubTransactionManager(bases.BaseTransactionManager):
-
     @classmethod
     def create(
         cls,

@@ -16,7 +16,6 @@ class EntityNotFoundRepositoryException(BaseRepositoryException):
 
 
 class Repository(Protocol[EntityT, IDT]):
-
     async def get(self, id_: IDT, *, context: contexts.Context) -> EntityT: ...
 
     async def save(self, entity: EntityT, *, context: contexts.Context) -> None: ...

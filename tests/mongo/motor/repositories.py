@@ -9,7 +9,6 @@ from tests.repositories import EntityNotFoundRepositoryException, Repository
 
 
 class MotorMongoRepository(Repository[Mapping[str, Any], bson.ObjectId]):
-
     def __init__(self, collection: AsyncIOMotorCollection, settings_id: Hashable, reg: pytrm.Registry) -> None:
         self._collection = collection
         self._settings_id = settings_id

@@ -1,18 +1,75 @@
-[tool.black]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pytrm"
+version = "0.3.0"
+description = "PyTRM is a transaction manager as abstraction of database access."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9,<4.0"
+authors = [
+    { name = "Aleksey Odinokov", email = "AlekseyOdi@yandex.ru" },
+]
+dependencies = [
+    "typing_extensions>=4.12",
+]
+
+[project.optional-dependencies]
+mongo-motor = ["motor>=3"]
+sqlalchemy = ["SQLAlchemy>=2"]
+
+[dependency-groups]
+dev = [
+    "asyncpg>=0.30",
+    "mypy==1.13",
+    "pytest==8.3.4",
+    "pytest-asyncio==0.25.3",
+    "ruff>=0.9",
+    "testcontainers==4.1.0",
+    "tox==4.24.1",
+    "tox-uv>=1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["pytrm"]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "session"
+
+[tool.mypy]
+python_version = "3.10"
+disallow_untyped_defs = true
+disallow_any_unimported = true
+no_implicit_optional = true
+check_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
+show_error_codes = true
+packages = ["pytrm", "tests"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_any_unimported = false
+warn_return_any = false
+
+[[tool.mypy.overrides]]
+module = "testcontainers.*"
+ignore_missing_imports = true
+
+[tool.ruff]
 line-length = 120
-target-version = ['py310']
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.mypy_cache
-  | \.tox
-  | \.?env
-  | \.?venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"]
+"tests/mongo/conftest.py" = ["E501"]
+"tests/*.py" = ["F841"]
+
+[tool.ruff.format]
+line-ending = "auto"

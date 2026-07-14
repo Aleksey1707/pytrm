@@ -6,7 +6,6 @@ from testcontainers.core.container import DockerContainer
 
 
 class CustomDockerContainer(DockerContainer):
-
     def __init__(self, image: str, connection_url: str, **kwargs) -> None:
         super().__init__(image, **kwargs)
         self.connection_url = connection_url
