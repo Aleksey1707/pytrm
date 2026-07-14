@@ -32,6 +32,12 @@ pip install git+https://github.com/Aleksey1707/pytrm.git@v0.1
 pip install "pytrm[sqlalchemy] @ git+https://github.com/Aleksey1707/pytrm.git@v0.1"
 ```
 
+### Установка через uv:
+
+```sh
+uv add "pytrm[sqlalchemy] @ git+https://github.com/Aleksey1707/pytrm.git@v0.1"
+```
+
 ## Использование
 
 Для работы с `pytrm` требуется реализация контекста `pytrm.Context`, который является неизменяемой структурой.
