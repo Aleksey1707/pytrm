@@ -97,7 +97,8 @@ class BaseTransactionManager(abc.ABC):
                 return ctx
         elif propagation is share.Propagation.NESTED:
             if has_transaction:
-                transaction = await self._create_nested_transaction()
+                parent_transaction = self._ctx_manager.get(ctx, key)
+                transaction = await self._create_nested_transaction(parent_transaction)
                 ctx = self._ctx_manager.set(ctx, key, transaction)
                 return ctx
         elif propagation is share.Propagation.MANDATORY:
@@ -135,4 +136,4 @@ class BaseTransactionManager(abc.ABC):
     async def _create_transaction(self) -> share.Transaction: ...
 
     @abc.abstractmethod
-    async def _create_nested_transaction(self) -> share.Transaction: ...
+    async def _create_nested_transaction(self, transaction: share.Transaction) -> share.Transaction: ...

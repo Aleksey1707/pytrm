@@ -45,14 +45,14 @@ async def test_required_propagation(
     assert record.value == 0
 
 
-async def test_nested_propagation(
+async def test_nested_propagation_rollback(
     context: contexts.Context,
     settings: pytrm.UniqSettings,
     transaction_manager: pytrm.TransactionManager,
     registry: pytrm.Registry,
     sessionmaker_: sessionmaker,
 ) -> None:
-    # given: запись в родительской транзакции
+    # given: незакоммиченная запись в родительской транзакции
     ID: Final = 2
     stmt: Any
 
@@ -61,23 +61,75 @@ async def test_nested_propagation(
         session = _get_session(new_context, settings, registry)
         await session.execute(stmt)
 
-        # when: вложенная транзакция обновляет запись и откатывается
         nested_settings = dataclasses.replace(settings, propagation=pytrm.Propagation.NESTED)
+
+        # when: вложенная транзакция видит изменения родителя, обновляет запись и откатывается
         with pytest.raises(RuntimeError, match="Need rollback nested transaction"):
-            async with transaction_manager.do(new_context, settings=nested_settings) as new_context2:
+            async with transaction_manager.do(new_context, settings=nested_settings) as nested_context:
+                parent_session = _get_session(new_context, settings, registry)
+                nested_session = _get_session(nested_context, settings, registry)
+                assert parent_session is nested_session
+
+                stmt = test_table.select().where(test_table.c.id == ID)
+                result = await nested_session.execute(stmt)
+                record = result.one()
+                assert record.value == 0
+
                 stmt = test_table.update().where(test_table.c.id == ID).values(value=9)
-                session = _get_session(new_context2, settings, registry)
-                await session.execute(stmt)
+                await nested_session.execute(stmt)
                 raise RuntimeError("Need rollback nested transaction")
 
-    # then: изменения из вложенной транзакции не сохранились
+        # and: родительская транзакция остаётся активной и может продолжить работу
+        session = _get_session(new_context, settings, registry)
+        stmt = test_table.select().where(test_table.c.id == ID)
+        result = await session.execute(stmt)
+        record = result.one()
+        assert record.value == 0
+
+        stmt = test_table.update().where(test_table.c.id == ID).values(value=5)
+        await session.execute(stmt)
+
+    # then: изменения из вложенной транзакции не сохранились, родительская транзакция зафиксирована
     async with sessionmaker_() as session:
         stmt = test_table.select().where(test_table.c.id == ID)
         result = await session.execute(stmt)
         record = result.one()
 
     assert record.id == ID
-    assert record.value == 0
+    assert record.value == 5
+
+
+async def test_nested_propagation_commit(
+    context: contexts.Context,
+    settings: pytrm.UniqSettings,
+    transaction_manager: pytrm.TransactionManager,
+    registry: pytrm.Registry,
+    sessionmaker_: sessionmaker,
+) -> None:
+    # given: запись в родительской транзакции
+    ID: Final = 3
+    stmt: Any
+
+    async with transaction_manager.do(context) as new_context:
+        stmt = test_table.insert().values(id=ID, value=0)
+        session = _get_session(new_context, settings, registry)
+        await session.execute(stmt)
+
+        # when: вложенная транзакция обновляет запись без исключения
+        nested_settings = dataclasses.replace(settings, propagation=pytrm.Propagation.NESTED)
+        async with transaction_manager.do(new_context, settings=nested_settings) as nested_context:
+            session = _get_session(nested_context, settings, registry)
+            stmt = test_table.update().where(test_table.c.id == ID).values(value=7)
+            await session.execute(stmt)
+
+    # then: изменения из savepoint зафиксированы вместе с родительской транзакцией
+    async with sessionmaker_() as session:
+        stmt = test_table.select().where(test_table.c.id == ID)
+        result = await session.execute(stmt)
+        record = result.one()
+
+    assert record.id == ID
+    assert record.value == 7
 
 
 async def test_mandatory_propagation(

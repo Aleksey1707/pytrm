@@ -109,5 +109,5 @@ class RedisTransactionManager(bases.BaseTransactionManager):
     async def _create_transaction(self) -> share.Transaction:
         return RedisTransaction(self._client.pipeline(transaction=True))
 
-    async def _create_nested_transaction(self) -> share.Transaction:
+    async def _create_nested_transaction(self, transaction: share.Transaction) -> share.Transaction:
         raise exceptions.NestedTransactionsNotSupportedTrmException

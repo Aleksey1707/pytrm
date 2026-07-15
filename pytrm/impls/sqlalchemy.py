@@ -1,8 +1,7 @@
-import abc
 import sys
 from typing import ClassVar, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, AsyncSessionTransaction
 from sqlalchemy.orm import sessionmaker
 
 from pytrm import bases, share
@@ -13,8 +12,8 @@ else:
     from typing import Self
 
 
-class BaseSqlAlchemyTransaction(abc.ABC):
-    """Базовая обёртка над транзакцией SqlAlchemy"""
+class SqlAlchemyTransaction:
+    """Обертка над транзакцией SqlAlchemy"""
 
     _sessionmaker: ClassVar[Optional[sessionmaker]] = None
 
@@ -51,9 +50,9 @@ class BaseSqlAlchemyTransaction(abc.ABC):
         """
         return self._session.in_transaction()
 
-    @abc.abstractmethod
     async def begin(self) -> None:
         """Начать транзакцию"""
+        await self._session.begin()
 
     async def commit(self) -> None:
         """Зафиксировать транзакцию"""
@@ -72,20 +71,42 @@ class BaseSqlAlchemyTransaction(abc.ABC):
         return self._session
 
 
-class SqlAlchemyTransaction(BaseSqlAlchemyTransaction):
-    """Обертка над транзакцией SqlAlchemy"""
+class SqlAlchemyNestedTransaction:
+    """Обертка над вложенной транзакцией (SAVEPOINT) SqlAlchemy"""
+
+    __slots__ = ("_session", "_savepoint")
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+        self._savepoint: Optional[AsyncSessionTransaction] = None
+
+    def is_active(self) -> bool:
+        """
+        Проверить, активен ли savepoint
+
+        :return: True, если savepoint активен
+        """
+        return self._savepoint is not None and self._savepoint.is_active
 
     async def begin(self) -> None:
-        """Начать транзакцию"""
-        await self._session.begin()
+        """Открыть SAVEPOINT в текущей сессии"""
+        self._savepoint = await self._session.begin_nested()
 
+    async def commit(self) -> None:
+        """Зафиксировать SAVEPOINT (RELEASE SAVEPOINT)"""
+        await self._savepoint.commit()  # type: ignore[union-attr]
 
-class SqlAlchemyNestedTransaction(BaseSqlAlchemyTransaction):
-    """Обертка над вложенной транзакцией SqlAlchemy"""
+    async def rollback(self) -> None:
+        """Откатить к SAVEPOINT (ROLLBACK TO SAVEPOINT)"""
+        await self._savepoint.rollback()  # type: ignore[union-attr]
 
-    async def begin(self) -> None:
-        """Начать вложенную транзакцию"""
-        await self._session.begin_nested()
+    def unwrap(self) -> share.NativeTransaction:
+        """
+        Получить нативную сессию SqlAlchemy
+
+        :return: сессия SqlAlchemy
+        """
+        return self._session
 
 
 class SqlAlchemyTransactionManager(bases.BaseTransactionManager):
@@ -132,5 +153,5 @@ class SqlAlchemyTransactionManager(bases.BaseTransactionManager):
     async def _create_transaction(self) -> share.Transaction:
         return SqlAlchemyTransaction.create(self._sessionmaker)
 
-    async def _create_nested_transaction(self) -> share.Transaction:
-        return SqlAlchemyNestedTransaction.create(self._sessionmaker)
+    async def _create_nested_transaction(self, transaction: share.Transaction) -> share.Transaction:
+        return SqlAlchemyNestedTransaction(transaction.unwrap())

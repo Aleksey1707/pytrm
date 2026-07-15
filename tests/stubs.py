@@ -58,5 +58,5 @@ class StubTransactionManager(bases.BaseTransactionManager):
     async def _create_transaction(self) -> share.Transaction:
         return DummyTransaction()
 
-    async def _create_nested_transaction(self) -> share.Transaction:
+    async def _create_nested_transaction(self, transaction: share.Transaction) -> share.Transaction:
         raise exceptions.NestedTransactionsNotSupportedTrmException

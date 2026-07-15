@@ -150,5 +150,5 @@ class MongoTransactionManager(bases.BaseTransactionManager):
             transaction_data=self._transaction_data,
         )
 
-    async def _create_nested_transaction(self) -> share.Transaction:
+    async def _create_nested_transaction(self, transaction: share.Transaction) -> share.Transaction:
         raise exceptions.NestedTransactionsNotSupportedTrmException
