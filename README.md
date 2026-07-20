@@ -26,16 +26,16 @@
 pip install git+https://github.com/Aleksey1707/pytrm.git@master
 
 # установка конкретной версии
-pip install git+https://github.com/Aleksey1707/pytrm.git@v0.1
+pip install git+https://github.com/Aleksey1707/pytrm.git@0.3.0
 
 # установка конкретной версии с extras
-pip install "pytrm[sqlalchemy] @ git+https://github.com/Aleksey1707/pytrm.git@v0.1"
+pip install "pytrm[sqlalchemy] @ git+https://github.com/Aleksey1707/pytrm.git@0.3.0"
 ```
 
 ### Установка через uv:
 
 ```sh
-uv add "pytrm[sqlalchemy] @ git+https://github.com/Aleksey1707/pytrm.git@v0.1"
+uv add "pytrm[sqlalchemy] @ git+https://github.com/Aleksey1707/pytrm.git@0.3.0"
 ```
 
 ## Использование
