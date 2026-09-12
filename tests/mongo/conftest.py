@@ -3,6 +3,7 @@ from typing import Iterator
 
 import pytest
 from testcontainers.core.container import DockerContainer
+from testcontainers.core.waiting_utils import wait_for_logs
 
 
 class CustomDockerContainer(DockerContainer):
@@ -22,15 +23,17 @@ def mongo() -> Iterator[CustomDockerContainer]:
     mongo_container.with_bind_ports(container=mongo_bind_port, host=mongo_bind_port)
     mongo_container.with_command(f"--port={mongo_bind_port} --replSet=rs")
     mongo_container.start()
+    # rs.initiate падает, пока mongod не начал принимать соединения
+    wait_for_logs(mongo_container, "Waiting for connections")
 
     rs_initiate = (
         "mongosh --quiet --eval=\"rs.initiate({_id:'rs',members:[{_id:0,host:'localhost:%s'}]})\" mongodb://localhost:%s"
         % (mongo_bind_port, mongo_bind_port)
     )
 
-    exit_code, _ = mongo_container.exec(rs_initiate)
+    exit_code, output = mongo_container.exec(rs_initiate)
     if exit_code != 0:
-        raise RuntimeError("replica set didn't get setup properly")
+        raise RuntimeError(f"replica set didn't get setup properly: {output.decode()}")
 
     yield mongo_container
 
