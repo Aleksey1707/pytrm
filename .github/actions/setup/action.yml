@@ -1,0 +1,19 @@
+name: setup
+description: Ставит uv фиксированной версии и готовит окружение проекта со всеми extras
+
+inputs:
+  python-version:
+    description: Версия Python для окружения проекта
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v10
+      with:
+        version: "0.10.0"
+        enable-cache: true
+        python-version: ${{ inputs.python-version }}
+
+    - run: uv sync --locked --all-extras
+      shell: bash

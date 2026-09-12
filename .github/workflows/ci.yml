@@ -1,0 +1,212 @@
+name: CI
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Отменяются только прогоны PR: сигнал по коммитам master и develop сохраняется
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # Любой вызов uv падает, если uv.lock разошёлся с pyproject.toml
+  UV_LOCKED: "1"
+  # Версия Python для job-ов вне матрицы
+  PYTHON_DEFAULT: "3.13"
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup
+        with:
+          python-version: ${{ env.PYTHON_DEFAULT }}
+
+      - run: make lint
+
+      # Хуки pre-commit, которых нет в make lint
+      - name: pre-commit hooks
+        run: |
+          uvx pre-commit run trailing-whitespace --all-files
+          uvx pre-commit run check-added-large-files --all-files
+
+  test-fast:
+    name: test-fast (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - run: make test-fast
+
+  test-integration:
+    name: test-integration (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # Границы поддерживаемого диапазона: середину закрывает test-fast
+        python-version: ["3.9", "3.14"]
+    env:
+      DOCKER_HOST: unix:///var/run/docker.sock
+      TESTCONTAINERS_RYUK_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - run: make test-integration
+
+  test-lowest:
+    name: test-lowest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DOCKER_HOST: unix:///var/run/docker.sock
+      TESTCONTAINERS_RYUK_DISABLED: "true"
+      # Лок перерешается с нуля — сверять его с коммитом нечего
+      UV_LOCKED: "0"
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.10.0"
+          enable-cache: true
+          python-version: "3.9"
+
+      # Нижние границы из pyproject.toml: поверх существующего лока uv версии не понижает
+      - name: lock по нижним границам
+        run: |
+          rm uv.lock
+          uv lock --resolution lowest-direct
+          uv sync --all-extras
+
+      - run: make test-fast
+
+      - run: make test-integration
+
+  extras-smoke:
+    name: extras-smoke (${{ matrix.extra }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - extra: sqlalchemy
+            module: pytrm.impls.sqlalchemy
+          - extra: redis
+            module: pytrm.impls.redis
+          - extra: mongo-motor
+            module: pytrm.impls.mongo.motor
+          - extra: mongo-pymongo
+            module: pytrm.impls.mongo.pymongo
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.10.0"
+          enable-cache: true
+          python-version: ${{ env.PYTHON_DEFAULT }}
+
+      - run: make build
+
+      # Реализация обязана подниматься с одним своим драйвером, без остальных
+      - name: установка одного extra
+        env:
+          EXTRA: ${{ matrix.extra }}
+          MODULE: ${{ matrix.module }}
+        run: |
+          uv venv /tmp/extra
+          uv pip install --python /tmp/extra "$(echo dist/*.whl)[$EXTRA]"
+          /tmp/extra/bin/python -c "import $MODULE"
+
+  cover:
+    name: cover
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DOCKER_HOST: unix:///var/run/docker.sock
+      TESTCONTAINERS_RYUK_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup
+        with:
+          python-version: ${{ env.PYTHON_DEFAULT }}
+
+      - run: make cover
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: htmlcov
+          path: htmlcov
+          retention-days: 14
+          if-no-files-found: error
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [lint, test-fast, test-integration]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.10.0"
+          enable-cache: true
+          python-version: ${{ env.PYTHON_DEFAULT }}
+
+      - run: make build
+
+      # Ядро обязано ставиться и подниматься без единого драйвера
+      - name: smoke-check wheel
+        run: |
+          uv venv /tmp/smoke
+          uv pip install --python /tmp/smoke dist/*.whl
+          /tmp/smoke/bin/python -c "import pytrm, pytrm.impls.null; print(pytrm.__version__)"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/*
+          retention-days: 14
+          if-no-files-found: error
+
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [lint, test-fast, test-integration, test-lowest, extras-smoke, cover, build]
+    if: always()
+    steps:
+      - name: check jobs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS"
+          test "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "false"

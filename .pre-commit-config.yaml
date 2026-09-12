@@ -11,7 +11,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: uv run mypy
+        entry: uv run --all-extras mypy
         language: system
         require_serial: true
         pass_filenames: false
@@ -19,21 +19,21 @@ repos:
 
       - id: ruff-check
         name: ruff-check
-        entry: uv run ruff check --fix
+        entry: uv run --all-extras ruff check --fix
         language: system
         types: [python]
         fail_fast: true
 
       - id: ruff-format
         name: ruff-format
-        entry: uv run ruff format --check
+        entry: uv run --all-extras ruff format --check
         language: system
         types: [python]
         fail_fast: true
 
       - id: rules-check
         name: rules-check
-        entry: uv run python scripts/rules_lint.py
+        entry: uv run --all-extras python scripts/rules_lint.py
         language: system
         require_serial: true
         pass_filenames: false
@@ -41,7 +41,7 @@ repos:
 
       - id: pytest-fast
         name: pytest-fast
-        entry: uv run pytest -m "not integration"
+        entry: uv run --all-extras pytest -m "not integration"
         language: system
         require_serial: true
         pass_filenames: false

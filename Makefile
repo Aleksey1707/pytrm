@@ -7,39 +7,42 @@ TESTCONTAINERS_RYUK_DISABLED ?= true
 export DOCKER_HOST
 export TESTCONTAINERS_RYUK_DISABLED
 
+# Без --all-extras uv собирает окружение без драйверов БД: они нужны mypy и сбору тестов
+UV_RUN = uv run --all-extras
+
 .PHONY: default
 default: format lint test-fast
 
 .PHONY: rules-check
 rules-check:
-	uv run python scripts/rules_lint.py
+	$(UV_RUN) python scripts/rules_lint.py
 
 .PHONY: lint
 lint: rules-check
-	uv run mypy
-	uv run ruff format --check .
-	uv run ruff check .
+	$(UV_RUN) mypy
+	$(UV_RUN) ruff format --check .
+	$(UV_RUN) ruff check .
 
 .PHONY: format
 format:
-	uv run ruff format .
-	uv run ruff check --fix .
+	$(UV_RUN) ruff format .
+	$(UV_RUN) ruff check --fix .
 
 .PHONY: test
 test:
-	uv run tox -p auto
+	$(UV_RUN) tox -p auto
 
 .PHONY: test-fast
 test-fast:
-	uv run pytest -m "not integration"
+	$(UV_RUN) pytest -m "not integration"
 
 .PHONY: test-integration
 test-integration:
-	uv run pytest -m integration
+	$(UV_RUN) pytest -m integration
 
 .PHONY: cover
 cover:
-	uv run pytest --cov=pytrm --cov-report=term-missing --cov-report=html
+	$(UV_RUN) pytest --cov=pytrm --cov-report=term-missing --cov-report=html
 
 .PHONY: build
 build:

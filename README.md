@@ -1,5 +1,7 @@
 # PyTRM
 
+[![CI](https://github.com/Aleksey1707/pytrm/actions/workflows/ci.yml/badge.svg)](https://github.com/Aleksey1707/pytrm/actions/workflows/ci.yml)
+
 Менеджер транзакций для работы с различными БД.
 
 ## Описание
