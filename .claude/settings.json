@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(.env)",
+      "Read(uv.lock)",
+      "Read(local/**)"
+    ]
+  }
+}

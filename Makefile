@@ -3,8 +3,12 @@ PROJECT_DIR = $(shell pwd)
 .PHONY: default
 default: format lint test-fast
 
+.PHONY: rules-check
+rules-check:
+	uv run python scripts/rules_lint.py
+
 .PHONY: lint
-lint:
+lint: rules-check
 	uv run mypy
 	uv run ruff format --check .
 	uv run ruff check .
