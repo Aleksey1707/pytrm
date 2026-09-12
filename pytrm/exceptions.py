@@ -18,7 +18,7 @@ class BaseTrmException(Exception, metaclass=abc.ABCMeta):
 
 
 class BaseContextManagerTrmException(BaseTrmException, metaclass=abc.ABCMeta):
-    """Базовое исключение контекстноо менеджера транзакций"""
+    """Базовое исключение контекстного менеджера транзакций"""
 
 
 class TransactionNotFoundInContextException(BaseContextManagerTrmException):

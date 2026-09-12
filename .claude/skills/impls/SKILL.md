@@ -1,6 +1,6 @@
 ---
 name: impls
-description: "Свод реализаций pytrm под конкретную БД: раскладка модуля на Transaction, NestedTransaction и TransactionManager, структурное соответствие протоколу без наследования, __slots__, is_active от состояния драйвера, что возвращает unwrap, запрет ClassVar-кеша фабрики, контракт classmethod create с settings_id и keyword-only reg, запрет переопределять do и _do, ограничения драйвера в docstring, чек-лист подключения extra в pyproject и tox. Использовать при новой реализации БД, правке существующей и добавлении extra."
+description: "Свод реализаций pytrm под конкретную БД: раскладка модуля на Transaction, NestedTransaction и TransactionManager, общий base.py для нескольких драйверов одной БД, структурное соответствие протоколу без наследования, __slots__, is_active от состояния драйвера, что возвращает unwrap, освобождение ресурса в finally, запрет ClassVar-кеша фабрики, контракт classmethod create с settings_id и keyword-only reg, запрет переопределять do и _do, ограничения драйвера в docstring, чек-лист подключения extra в pyproject и tox. Использовать при новой реализации БД, правке существующей и добавлении extra."
 ---
 
 # 13-impls.md

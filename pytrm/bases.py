@@ -1,8 +1,15 @@
 import abc
 import contextlib
-from typing import AsyncContextManager, AsyncIterator, Optional, Tuple, Type
+from typing import AsyncContextManager, AsyncIterator, Final, Optional, Tuple, Type
 
 from pytrm import exceptions, share
+
+# Правила, при которых блок выполняется без транзакции, если её нет в контексте
+NON_TRANSACTIONAL_PROPAGATIONS: Final = (
+    share.Propagation.NEVER,
+    share.Propagation.NOT_SUPPORTED,
+    share.Propagation.SUPPORTS,
+)
 
 
 class BaseTransactionManager(abc.ABC):
@@ -60,7 +67,7 @@ class BaseTransactionManager(abc.ABC):
         try:
             transaction = self._ctx_manager.get(ctx, key)
         except exceptions.TransactionNotFoundInContextException as e:
-            if settings.propagation not in (share.Propagation.NOT_SUPPORTED, share.Propagation.SUPPORTS):
+            if settings.propagation not in NON_TRANSACTIONAL_PROPAGATIONS:
                 raise e
 
             yield ctx
@@ -71,7 +78,10 @@ class BaseTransactionManager(abc.ABC):
                 await transaction.begin()
                 try:
                     yield ctx
-                except Exception as e:
+                except GeneratorExit:
+                    # Генератор закрывают, дожидаться ввода-вывода здесь нельзя
+                    raise
+                except BaseException as e:
                     if isinstance(e, exclude):
                         await transaction.commit()
                     else:
@@ -123,14 +133,6 @@ class BaseTransactionManager(abc.ABC):
 
         transaction = await self._create_transaction()
         return self._ctx_manager.set(ctx, key, transaction)
-
-    async def _set_new_transaction(
-        self,
-        ctx: share.Context,
-        key: share.Key,
-    ) -> None:
-        transaction = await self._create_transaction()
-        self._ctx_manager.set(ctx, key, transaction)
 
     @abc.abstractmethod
     async def _create_transaction(self) -> share.Transaction: ...

@@ -52,8 +52,14 @@ class SettingsNotFoundException(BaseSettingsTrmException):
 которые метод бросает сам или пропускает от вызываемых им методов.
 
 - Строка пишется как `:raises <ИмяКласса>: <когда>` и идёт после `:return:`.
+- Описание в строке MUST соответствовать условию в коде: «если реестр не инициализирован»
+  напротив исключения, которое означает незаданное имя атрибута, — дефект документации,
+  и он опаснее её отсутствия, потому что по ней пишут `except`.
+- Исключение, которое приходит из вызываемого метода и выходит наружу, MUST быть указано
+  тоже: `_get_registry_data` бросает `RegistryIsNotInitializedException`, значит его
+  перечисляют все публичные методы `Registry`.
 - При добавлении нового `raise` MUST обновляться docstring всех методов, через которые
-  исключение выходит наружу; иначе контракт расходится с кодом.
+  исключение выходит наружу.
 - Ловить `BaseTrmException` внутри пакета SHOULD NOT: исключение либо обрабатывается по
   конкретному типу, либо пропускается наружу.
 
@@ -66,6 +72,18 @@ except exceptions.BaseTrmException:
 except exceptions.TransactionNotFoundInContextException:
     has_transaction = False
 ```
+
+## Именование
+
+Имя листа MUST заканчиваться на `Exception` и MUST читаться как утверждение о факте
+(`TransactionNotFoundInContextException`, `RegistryIsAlreadyInitializedException`).
+
+Инфикс `Trm` сейчас непоследователен: он есть у всех баз и у части листьев
+(`PropagationMandatoryTrmException`), но отсутствует у `SettingsNotFoundException`,
+`NoSettingsException`, `UnknownValueInContextException`, `TransactionNotFoundInContextException`
+и обоих `Registry*`. Новое исключение SHOULD следовать соседям по своей подсистеме;
+сквозное переименование — отдельная правка с изменением публичного API, а не побочный
+эффект другой задачи.
 
 ## Связанные правила
 

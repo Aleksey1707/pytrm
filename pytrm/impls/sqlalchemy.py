@@ -1,5 +1,5 @@
 import sys
-from typing import ClassVar, Optional
+from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncSessionTransaction
 from sqlalchemy.orm import sessionmaker
@@ -13,9 +13,7 @@ else:
 
 
 class SqlAlchemyTransaction:
-    """Обертка над транзакцией SqlAlchemy"""
-
-    _sessionmaker: ClassVar[Optional[sessionmaker]] = None
+    """Обёртка над транзакцией SqlAlchemy"""
 
     __slots__ = ("_session",)
 
@@ -28,18 +26,15 @@ class SqlAlchemyTransaction:
     @classmethod
     def create(
         cls,
-        sessionmaker: sessionmaker,
+        sessionmaker_: sessionmaker,
     ) -> Self:
         """
         Создать транзакцию
 
-        :param sessionmaker: фабрика сессий SqlAlchemy
+        :param sessionmaker_: фабрика сессий SqlAlchemy
         :return: экземпляр транзакции
         """
-        if cls._sessionmaker is None:
-            cls._sessionmaker = sessionmaker
-
-        session = cls._sessionmaker()
+        session: AsyncSession = sessionmaker_()
         return cls(session)
 
     def is_active(self) -> bool:
@@ -55,12 +50,18 @@ class SqlAlchemyTransaction:
         await self._session.begin()
 
     async def commit(self) -> None:
-        """Зафиксировать транзакцию"""
-        await self._session.commit()
+        """Зафиксировать транзакцию и закрыть сессию"""
+        try:
+            await self._session.commit()
+        finally:
+            await self._session.close()
 
     async def rollback(self) -> None:
-        """Откатить транзакцию"""
-        await self._session.rollback()
+        """Откатить транзакцию и закрыть сессию"""
+        try:
+            await self._session.rollback()
+        finally:
+            await self._session.close()
 
     def unwrap(self) -> share.NativeTransaction:
         """
@@ -72,7 +73,7 @@ class SqlAlchemyTransaction:
 
 
 class SqlAlchemyNestedTransaction:
-    """Обертка над вложенной транзакцией (SAVEPOINT) SqlAlchemy"""
+    """Обёртка над вложенной транзакцией (SAVEPOINT) SqlAlchemy"""
 
     __slots__ = ("_session", "_savepoint")
 
@@ -110,7 +111,7 @@ class SqlAlchemyNestedTransaction:
 
 
 class SqlAlchemyTransactionManager(bases.BaseTransactionManager):
-    """Менджер транзакций SqlAlchemy"""
+    """Менеджер транзакций SqlAlchemy"""
 
     __slots__ = ("_sessionmaker",)
 

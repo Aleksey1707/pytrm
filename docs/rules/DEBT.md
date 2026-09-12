@@ -5,67 +5,47 @@
 
 Формат записи: правило → место → причина → условие выхода.
 
-Дата ревизии: 2026-09-12 (свод заведён; записи ниже получены разбором кода при его составлении).
+Дата ревизии: 2026-09-12 (по итогам аудита проекта: закрыты `NEVER` без транзакции,
+`exclude` для наследников `BaseException`, `ClassVar`-кеш `sessionmaker`, незакрытая сессия
+SQLAlchemy, `end_session` мимо `finally` у Mongo, мёртвый `_set_new_transaction` и
+расхождение docstring `Registry` с сигнатурами).
 
-Все четыре записи — **дефекты, ещё не исправленные**, а не принятые компромиссы. Они здесь,
-чтобы правка не выглядела случайной находкой: у каждой есть воспроизведение и условие выхода.
+## Аннотация `in_transaction` в motor (`13-impls.md`)
 
-## `NEVER` без транзакции падает (`11-propagation.md`)
+`13-impls.md` требует, чтобы `is_active()` читал состояние драйвера напрямую. Общая обёртка
+`BaseMongoTransaction` объявляет сессию протоколом `MongoSession`, где `in_transaction` —
+свойство типа `bool`. Так оно и работает в рантайме: интеграционные тесты обоих драйверов
+на этом и держатся.
 
-`11-propagation.md` требует: `NEVER` без транзакции в контексте выполняет блок
-нетранзакционно. Фактически `bases._initialize` возвращает контекст без транзакции, а
-`bases._do` пропускает нетранзакционное выполнение только для `NOT_SUPPORTED` и `SUPPORTS`,
-поэтому `NEVER` получает `TransactionNotFoundInContextException`.
+Но motor объявляет `AgnosticClientSession.in_transaction` как `Callable[[], bool]` — метод,
+а не свойство. Аннотация драйвера расходится с его же поведением, поэтому сборка обёртки
+в `impls/mongo/motor.py` помечена `# type: ignore[arg-type]`.
 
-```python
-async with trm.do(ctx, propagation=pytrm.Propagation.NEVER):
-    ...  # TransactionNotFoundInContextException, хотя транзакции и не должно быть
-```
+Причина, по которой не чинится здесь: править чужие аннотации можно только заглушками
+(`stubs/`) на весь пакет motor, а это дороже одной строки подавления. Само подавление
+точечное и именованное — `warn_unused_ignores` снимет его, как только motor исправит тип.
 
-Причина, по которой не заметили: единственный тест (`test_never_propagation`) проверяет
-ветку «транзакция есть» и ждёт `PropagationNeverTrmException`. Ветка «транзакции нет»
-не покрыта.
+Условие выхода: motor публикует `in_transaction` как свойство, либо проект переезжает
+на `pymongo.AsyncMongoClient` целиком и модуль motor удаляется.
 
-Условие выхода: добавить `NEVER` в кортеж допустимых правил в `bases._do` и завести тест
-на ветку без транзакции.
+## Непоследовательный инфикс `Trm` в исключениях (`12-errors.md`)
 
-## `exclude` не работает для `BaseException` (`11-propagation.md`)
+`12-errors.md` требует от нового исключения следовать соседям по подсистеме. Сейчас сами
+соседи расходятся: инфикс есть у всех баз и у `PropagationMandatoryTrmException`,
+`PropagationNeverTrmException`, `NestedTransactionsNotSupportedTrmException`, но отсутствует
+у `TransactionNotFoundInContextException`, `UnknownValueInContextException`,
+`RegistryIsNotInitializedException`, `RegistryIsAlreadyInitializedException`,
+`SettingsNotFoundException` и `NoSettingsException`.
 
-Параметр `exclude` типизирован как `Tuple[Type[BaseException], ...]`, то есть обещает
-работать с любым исключением. Фактически `bases._do` ловит `except Exception`, поэтому
-наследники `BaseException` мимо `Exception` (`asyncio.CancelledError`, `KeyboardInterrupt`,
-`SystemExit`) не попадают ни в `commit`, ни в `rollback` — транзакция остаётся открытой.
+Причина, по которой не чинится сейчас: имена исключений — публичный API, их ловит
+прикладной код. Переименование шести классов — отдельная правка с мажорной версией и
+периодом совместимости через алиасы, а не побочный эффект аудита.
 
-Практический случай — отмена задачи: `CancelledError` прилетает в точку `yield`, уходит
-наружу, транзакция не откачена.
-
-Условие выхода: либо ловить `BaseException` и откатывать по умолчанию, либо сузить
-аннотацию до `Type[Exception]`. Решение требует владельца проекта: первое меняет поведение
-при отмене, второе сужает публичный контракт.
-
-## Мёртвый `_set_new_transaction` (`10-architecture.md`)
-
-`bases.BaseTransactionManager._set_new_transaction` не вызывается ниоткуда и при этом
-нарушает норму неизменяемости контекста из `10-architecture.md`: результат
-`self._ctx_manager.set(...)` выбрасывается, то есть метод не делает ничего наблюдаемого.
-
-Условие выхода: удалить метод. Отдельная запись здесь нужна, чтобы удаление не выглядело
-потерей функциональности.
-
-## `ClassVar`-кеш `sessionmaker` (`13-impls.md`)
-
-`impls.sqlalchemy.SqlAlchemyTransaction._sessionmaker` — `ClassVar`, заполняемый первым
-вызовом `create`. Второй менеджер, созданный с другим `sessionmaker` (другая БД, другой
-пул, подменённая фабрика в тесте), молча получит фабрику первого.
-
-Это прямо запрещено нормой «состояние драйвера MUST храниться на экземпляре»
-в `13-impls.md`.
-
-Условие выхода: убрать `ClassVar`, передавать `sessionmaker` в `create` и использовать
-переданный. Менять вместе с тестом на два менеджера с разными фабриками.
+Условие выхода: ближайшее изменение публичного API, при котором заводятся алиасы старых
+имён и объявляется срок их удаления.
 
 ## Связанные правила
 
-- Правила распространения — `11-propagation.md`
 - Реализации под конкретную БД — `13-impls.md`
+- Исключения — `12-errors.md`
 - Ведение свода — `00-index.md`

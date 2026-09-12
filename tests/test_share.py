@@ -149,3 +149,19 @@ def test_registry_get_settings_and_ctx_manager() -> None:
     assert registry.get_ctx_manager() is share.DEFAULT_CONTEXT_MANAGER
     assert registry.get_trm_attr_name() == "_trm"
     assert registry.get_trm_settings_attr_name() == "_trm_settings"
+
+
+def test_key_equals_only_other_key() -> None:
+    key = pytrm.Key("test")
+
+    assert key == pytrm.Key("test")
+    assert key != pytrm.Key("other")
+    assert key != "test"
+
+
+def test_key_repr_shows_value() -> None:
+    assert repr(pytrm.Key("test")) == "Key(test)"
+
+
+def test_key_hash_matches_equal_keys() -> None:
+    assert hash(pytrm.Key("test")) == hash(pytrm.Key("test"))

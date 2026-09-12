@@ -27,6 +27,7 @@
 | `exceptions.py` | иерархия исключений | — |
 | `share.py` | контракты: протоколы, `Settings`, `Registry`, `ContextManager` | `exceptions` |
 | `bases.py` | скелет менеджера: `BaseTransactionManager` | `exceptions`, `share` |
+| `impls/mongo/base.py` | общая часть двух драйверов MongoDB | `bases`, `share`, `exceptions` |
 | `impls/<impl>.py` | обёртки над конкретной БД | `bases`, `share`, `exceptions` |
 | `configurations.py` | сборка реестра | `share` |
 | `decorators.py` | `transactional`, `transactional_with` | `share`, `utils.marks` |
@@ -49,6 +50,8 @@
   Прикладной код импортирует реализацию явно: `from pytrm.impls.sqlalchemy import ...`.
 - `DEFAULT_REGISTRY` из API исключён намеренно: доступ к реестру по умолчанию идёт через
   `configurate` и через параметр `reg` публичных функций.
+- Версия пакета живёт в `pytrm.__version__` и оттуда же читается сборкой
+  (`[tool.hatch.version]`). Дублировать её в `pyproject.toml` MUST NOT.
 
 ```python
 # плохо — реализация в публичном API: импорт pytrm упадёт без установленного драйвера

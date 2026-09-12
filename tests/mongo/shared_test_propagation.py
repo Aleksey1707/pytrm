@@ -62,7 +62,7 @@ async def test_nested_propagation(
     async with transaction_manager.do(context) as new_context:
         nested_settings = dataclasses.replace(settings, propagation=pytrm.Propagation.NESTED)
         with pytest.raises(exceptions.NestedTransactionsNotSupportedTrmException):
-            async with transaction_manager.do(new_context, settings=nested_settings) as new_context2:
+            async with transaction_manager.do(new_context, settings=nested_settings):
                 pass
 
 
@@ -74,7 +74,7 @@ async def test_mandatory_propagation(
     mandatory_settings = dataclasses.replace(settings, propagation=pytrm.Propagation.MANDATORY)
 
     with pytest.raises(exceptions.PropagationMandatoryTrmException):
-        async with transaction_manager.do(context, settings=mandatory_settings) as new_context:
+        async with transaction_manager.do(context, settings=mandatory_settings):
             pass
 
 
@@ -86,7 +86,7 @@ async def test_never_propagation(
     async with transaction_manager.do(context) as new_context:
         never_settings = dataclasses.replace(settings, propagation=pytrm.Propagation.NEVER)
         with pytest.raises(exceptions.PropagationNeverTrmException):
-            async with transaction_manager.do(new_context, settings=never_settings) as new_context2:
+            async with transaction_manager.do(new_context, settings=never_settings):
                 pass
 
 

@@ -18,6 +18,9 @@
 
 - Модуль реализации MUST NOT импортировать другую реализацию: общий код живёт в `bases.py`
   или `share.py`.
+- Если одну и ту же БД обслуживают несколько драйверов, их общая часть живёт в `base.py`
+  рядом с ними (`impls/mongo/base.py`), а модуль драйвера оставляет себе только то, чем
+  драйверы различаются. Дублировать обёртку между драйверами MUST NOT.
 - Импорт драйвера MUST стоять на верхнем уровне модуля: модуль и так загружается только
   тогда, когда прикладной код импортирует его явно.
 - `pytrm/impls/__init__.py` MUST оставаться пустым: любой импорт в нём потянет драйвер.
@@ -36,28 +39,35 @@ SHOULD NOT: `runtime_checkable` проверяет только наличие �
   с БД: для SQLAlchemy это сессия, для Redis — pipeline. Именно он придёт из
   `get_native_transaction`.
 - У обёртки и у менеджера MUST быть `__slots__`: объекты создаются на каждый блок `do()`.
+- `commit` и `rollback` MUST освобождать ресурс, который обёртка завела сама (сессия,
+  pipeline), и делать это в `finally`: иначе сбой фиксации оставит ресурс висеть. Обёртка
+  над вложенной транзакцией ресурс родителя MUST NOT закрывать.
 - Состояние драйвера MUST храниться на экземпляре. `ClassVar`-кеш фабрики MUST NOT:
   второй менеджер с другим подключением молча получит чужое.
 
 ```python
-# плохо — фабрика в ClassVar: первый sessionmaker выигрывает навсегда
-class SqlAlchemyTransaction:
+# плохо — фабрика в ClassVar: первый переданный sessionmaker выигрывает навсегда
+class ImplTransaction:
     _sessionmaker: ClassVar[Optional[sessionmaker]] = None
 
     @classmethod
-    def create(cls, sessionmaker: sessionmaker) -> Self:
+    def create(cls, sessionmaker_: sessionmaker) -> Self:
         if cls._sessionmaker is None:
-            cls._sessionmaker = sessionmaker
+            cls._sessionmaker = sessionmaker_
+
         return cls(cls._sessionmaker())
 
 # хорошо — фабрика приходит на каждый вызов
-class SqlAlchemyTransaction:
+class ImplTransaction:
     __slots__ = ("_session",)
 
     @classmethod
     def create(cls, sessionmaker_: sessionmaker) -> Self:
         return cls(sessionmaker_())
 ```
+
+Проверяется: `tests/sqlalchemy/test_sa_manager.py` — два менеджера с разными фабриками;
+`tests/mongo/test_mongo_base.py` — освобождение сессии при сбое фиксации.
 
 ## Менеджер транзакций
 
@@ -108,7 +118,7 @@ def create(
 - драйвер в `[dependency-groups] dev` и в `deps` секции `[testenv]` файла `tox.ini`;
 - `[[tool.mypy.overrides]]` с `ignore_missing_imports = true`, если у драйвера нет типов;
 - каталог `tests/<impl>/` с `conftest.py`, поднимающим контейнер, и набором тестов;
-- строка в README о том, какой extra ставить.
+- строка в таблице реализаций README о том, какой extra ставить.
 
 ## Связанные правила
 

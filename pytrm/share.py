@@ -292,11 +292,10 @@ class Registry:
         """
         Инициализировать реестр
 
-        :param default_settings: настройки по умолчанию
         :param settings_storage: хранилище настроек
         :param ctx_manager: менеджер контекста
-        :param transaction_manager_attr_name: имя атрибута, содержащего менеджер транзакций
-        :param transaction_manager_settings_attr_name: имя атрибута, содержащего настройки менеджера транзакций
+        :param trm_attr_name: имя атрибута, содержащего менеджер транзакций
+        :param trm_settings_attr_name: имя атрибута, содержащего настройки менеджера транзакций
         :return: None
         :raises RegistryIsAlreadyInitializedException: если реестр уже инициализирован
         """
@@ -315,7 +314,7 @@ class Registry:
         Получить настройки по идентификатору
 
         :param id_: идентификатор настроек
-        :return: настройки по умолчанию
+        :return: настройки с указанным идентификатором
         :raises RegistryIsNotInitializedException: если реестр не инициализирован
         :raises SettingsNotFoundException: если настройки не найдены
         """
@@ -325,9 +324,9 @@ class Registry:
 
     def get_ctx_manager(self) -> ContextManager:
         """
-        Получить контекстный менеджер
+        Получить менеджер контекста
 
-        :return: настройки по умолчанию
+        :return: менеджер контекста
         :raises RegistryIsNotInitializedException: если реестр не инициализирован
         """
         data = self._get_registry_data()
@@ -338,7 +337,8 @@ class Registry:
         Получить имя атрибута, содержащего менеджер транзакций
 
         :return: имя атрибута, содержащего менеджер транзакций
-        :raises TrmAttrNameNoAtRegistryException: если реестр не инициализирован
+        :raises RegistryIsNotInitializedException: если реестр не инициализирован
+        :raises TrmAttrNameNoAtRegistryException: если имя атрибута не задано в реестре
         """
         data = self._get_registry_data()
         if data.trm_attr_name is None:
@@ -350,8 +350,9 @@ class Registry:
         """
         Получить имя атрибута, содержащего настройки менеджера транзакций
 
-        :return: имя атрибута, содержащего менеджер транзакций
-        :raises TrmSettingsAttrNameNoAtRegistryException: если реестр не инициализирован
+        :return: имя атрибута, содержащего настройки менеджера транзакций
+        :raises RegistryIsNotInitializedException: если реестр не инициализирован
+        :raises TrmSettingsAttrNameNoAtRegistryException: если имя атрибута не задано в реестре
         """
         data = self._get_registry_data()
         if data.trm_settings_attr_name is None:

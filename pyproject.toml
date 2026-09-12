@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pytrm"
-version = "0.3.0"
+dynamic = ["version"]
 description = "PyTRM is a transaction manager as abstraction of database access."
 readme = "README.md"
 license = "MIT"
@@ -32,14 +32,18 @@ dev = [
     "testcontainers==4.1.0",
     "tox==4.24.1",
     "tox-uv>=1",
+    "pytest-cov>=6",
     "redis>=5",
 ]
+
+[tool.hatch.version]
+path = "pytrm/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["pytrm"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.9"
 disallow_untyped_defs = true
 disallow_any_unimported = true
 no_implicit_optional = true
@@ -65,7 +69,7 @@ ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
@@ -73,7 +77,6 @@ select = ["E", "F", "W", "I"]
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]
 "tests/mongo/conftest.py" = ["E501"]
-"tests/*.py" = ["F841"]
 
 [tool.ruff.format]
 line-ending = "auto"
@@ -83,7 +86,6 @@ pythonpath = ["."]
 addopts = ["--strict-markers"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
-asyncio_default_test_loop_scope = "session"
 markers = [
     "integration: тест требует внешней инфраструктуры (Docker-контейнер БД через testcontainers)",
 ]

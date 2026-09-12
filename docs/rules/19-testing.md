@@ -56,7 +56,10 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
 - Контейнер поднимается через `testcontainers` в `conftest.py` реализации, с областью
   `session`: контейнер на тест — это минуты вместо секунд.
 - `make test-fast` гоняет `pytest -m "not integration"` и MUST оставаться зелёным без Docker.
-- Полный прогон — `make test` (`tox -p auto`) по всем поддерживаемым версиям Python.
+- `make test-integration` гоняет только помеченные тесты, `make test` (`tox -p auto`) —
+  всё по всем поддерживаемым версиям Python.
+- Сокет контейнерного движка берётся из `DOCKER_HOST`; в `Makefile` и `tox.ini` задан
+  только запасной вариант поверх `XDG_RUNTIME_DIR`. Зашивать путь с конкретным uid MUST NOT.
 
 Проверяется: `uv run pytest --strict-markers` (незарегистрированный маркер — ошибка).
 
@@ -67,6 +70,10 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
 - В тривиальном тесте (один вызов, одна проверка) такие комментарии MUST NOT добавляться.
 - Ожидаемое исключение MUST проверяться через `pytest.raises`, а не через `try/except`
   с проверками внутри `except`: такой тест проходит молча, если исключение не возникло.
+- Привязка `as`, которая дальше не используется, MUST NOT оставаться: `async with trm.do(ctx):`
+  читается однозначно, а неиспользуемое имя маскирует опечатку.
+
+Проверяется: `uv run ruff check .` (правило `F841`).
 
 ```python
 # плохо — тест зелёный, даже если исключения не было
@@ -78,7 +85,7 @@ except exceptions.PropagationMandatoryTrmException:
 
 # хорошо
 with pytest.raises(exceptions.PropagationMandatoryTrmException):
-    async with trm.do(ctx, settings=mandatory) as new_ctx:
+    async with trm.do(ctx, settings=mandatory):
         pass
 ```
 
@@ -99,6 +106,8 @@ with pytest.raises(exceptions.PropagationMandatoryTrmException):
   ре-экспортом общего набора.
 - Тест без содержательных проверок MUST NOT существовать без явного назначения: либо удалить,
   либо задокументировать, зачем он нужен.
+- Покрытие меряется `make cover`; просадка относительно предыдущего прогона SHOULD
+  объясняться в описании правки.
 
 ## Связанные правила
 

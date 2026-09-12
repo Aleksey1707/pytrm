@@ -95,6 +95,31 @@ async def test_transactional_with_propagation_override_when_settings_none(
     assert inner_transaction is not outer_transaction
 
 
+async def test_transactional_with_settings_attr_name_none(
+    transaction_manager: pytrm.TransactionManager,
+    settings: pytrm.UniqSettings,
+    context: contexts.Context,
+) -> None:
+    # given: сервис без атрибута настроек — декоратору явно сказано его не искать
+    service = StubTransactionalWithoutSettingsService(_trm=transaction_manager)
+
+    # when: вызов метода
+    new_context = await service.process(context=context)
+
+    # then: использованы настройки по умолчанию самого менеджера
+    assert isinstance(new_context.find(settings.key), DummyTransaction)
+    assert context.find(settings.key) is None
+
+
+@dataclasses.dataclass(frozen=True)
+class StubTransactionalWithoutSettingsService:
+    _trm: pytrm.TransactionManager
+
+    @pytrm.transactional_with("_trm", None)
+    async def process(self, *, context: contexts.Context) -> contexts.Context:
+        return context
+
+
 @dataclasses.dataclass(frozen=True)
 class StubTransactionalService:
     _transaction_manager: pytrm.TransactionManager

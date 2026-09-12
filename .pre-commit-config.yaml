@@ -31,9 +31,25 @@ repos:
         types: [python]
         fail_fast: true
 
-      - id: pytest_tox
-        name: pytest_tox
-        entry: uv run tox -p auto
+      - id: rules-check
+        name: rules-check
+        entry: uv run python scripts/rules_lint.py
         language: system
         require_serial: true
         pass_filenames: false
+        fail_fast: true
+
+      - id: pytest-fast
+        name: pytest-fast
+        entry: uv run pytest -m "not integration"
+        language: system
+        require_serial: true
+        pass_filenames: false
+
+      - id: pytest_tox
+        name: pytest_tox
+        entry: make test
+        language: system
+        require_serial: true
+        pass_filenames: false
+        stages: [pre-push]

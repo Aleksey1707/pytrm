@@ -69,17 +69,19 @@ make rules-check         # свод docs/rules против стандарта 0
 make lint                # rules-check + mypy + ruff format --check + ruff check
 make format              # ruff format . + ruff check --fix .
 make test-fast           # pytest -m "not integration" — без Docker
-make test                # tox -p auto по всем версиям Python (нужен Docker/Podman)
+make test-integration    # только помеченные integration (нужен Docker/Podman)
+make test                # tox -p auto по всем версиям Python
+make cover               # покрытие: term-missing + htmlcov
 make build               # uv build
 uv run pytest tests/redis/test_redis_trm.py          # один файл
 uv run pytest tests/redis/test_redis_trm.py::test_x  # один тест
-uv run pytest -m integration                         # только интеграционные
 uv run mypy                                          # проверка типов по pytrm и tests
-uv run pre-commit run --all-files                    # весь набор хуков
+uv run pre-commit run --all-files                    # хуки стадии commit
 ```
 
-Интеграционные тесты поднимают контейнеры через `testcontainers`. В `tox.ini` задан
-`DOCKER_HOST=unix:///run/user/1000/podman/podman.sock` и отключён Ryuk.
+Интеграционные тесты поднимают контейнеры через `testcontainers`. `DOCKER_HOST` берётся
+из окружения; `Makefile` и `tox.ini` подставляют запасной вариант поверх `XDG_RUNTIME_DIR`,
+Ryuk по умолчанию отключён (переопределяется `TESTCONTAINERS_RYUK_DISABLED`).
 
 ## Agent skills
 

@@ -2,6 +2,8 @@
 PyTRM is a transaction manager as abstraction of database access.
 """
 
+__version__ = "0.3.0"
+
 from .configurations import configurate as configurate
 from .configurations import get_configurated_reg as get_configurated_reg
 from .decorators import transactional as transactional

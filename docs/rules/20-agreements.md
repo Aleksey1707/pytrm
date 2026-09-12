@@ -52,13 +52,15 @@ def get(self, ctx: Context, key: Key) -> Transaction:
 
 - Каждая функция и каждый метод MUST иметь аннотации параметров и возвращаемого значения.
 - `Any` MUST NOT появляться в сигнатурах. Исключение — псевдонимы на границе с драйвером,
-  где тип принципиально неизвестен (`NativeTransaction`, `ContextValue`); новый такой
-  псевдоним заводится только с разрешения владельца проекта.
+  где тип принципиально неизвестен (`NativeTransaction`, `ContextValue`, `MongoSessionData`);
+  новый такой псевдоним заводится только с разрешения владельца проекта.
 - Публичный контракт описывается `Protocol`, а не абстрактным базовым классом, если от
   реализации не требуется общего кода.
+- `# type: ignore` MUST указывать код ошибки (`# type: ignore[arg-type]`) и сопровождаться
+  комментарием с причиной. Голое подавление скрывает то, чего автор не разбирал.
 
 Проверяется: `uv run mypy` (`disallow_untyped_defs`, `disallow_any_unimported`,
-`warn_return_any`).
+`warn_return_any`, `warn_unused_ignores`).
 
 ## Совместимость версий
 
@@ -75,14 +77,19 @@ else:
     from typing import Self
 ```
 
-Проверяется: `make test` (`tox -p auto` прогоняет все поддерживаемые версии).
+Проверяется: `uv run mypy` (`python_version = "3.9"`) и `make test`
+(`tox -p auto` прогоняет все поддерживаемые версии). `target-version` у `ruff` MUST
+совпадать с нижней границей `requires-python`, иначе автофиксы предложат синтаксис новее
+поддерживаемого.
 
 ## Документация
 
 - У каждого публичного класса и метода MUST быть docstring.
 - Docstring метода MUST быть в формате reStructuredText: `:param:`, `:return:`, `:raises:`.
-- У исключения с заполненным `default_message` docstring MAY отсутствовать — см.
-  `12-errors.md`.
+- Имена в `:param:` MUST совпадать с именами параметров, а текст `:return:` — с тем, что
+  метод действительно возвращает. Неверная документация хуже отсутствующей: по ней пишут код.
+- Контракт `:raises` описан в `12-errors.md`.
+- У исключения с заполненным `default_message` docstring MAY отсутствовать.
 - Комментарии-пересказы кода MUST NOT добавляться; комментарий объясняет «почему»,
   а не «что».
 
@@ -110,18 +117,20 @@ make format              # ruff format . + ruff check --fix .
 make lint                # rules-check + mypy + ruff format --check + ruff check
 make rules-check         # свод docs/rules против стандарта 00-index.md
 make test-fast           # pytest -m "not integration" (без Docker)
+make test-integration    # только помеченные integration (нужен Docker/Podman)
 make test                # tox -p auto по всем версиям Python
+make cover               # покрытие: term-missing + htmlcov
 make build               # uv build
 uv run pytest tests/redis/test_redis_trm.py         # один файл
 uv run pytest tests/redis/test_redis_trm.py::test_x # один тест
-uv run pytest -m integration                        # только интеграционные
 ```
 
 - Длина строки — 120 символов; форматирование делает `ruff format`, руками MUST NOT.
 - Порядок импортов задаёт правило `I` у `ruff`; сортировать вручную MUST NOT.
-- Интеграционные тесты требуют Docker или Podman; в `tox.ini` задан
-  `DOCKER_HOST=unix:///run/user/1000/podman/podman.sock`.
-- `pre-commit` гоняет `mypy`, `ruff check --fix`, `ruff format --check` и `tox`.
+- Интеграционные тесты требуют Docker или Podman. `DOCKER_HOST` берётся из окружения;
+  `Makefile` и `tox.ini` задают только запасной вариант поверх `XDG_RUNTIME_DIR`.
+- `pre-commit` на коммите гоняет `mypy`, `ruff check --fix`, `ruff format --check`,
+  `rules-check` и быстрые тесты; полный `make test` вынесен на стадию `pre-push`.
 
 Проверяется: `make`.
 

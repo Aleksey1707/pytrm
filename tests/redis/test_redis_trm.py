@@ -26,7 +26,7 @@ async def test_nested_propagation(
     async with transaction_manager.do(context) as new_context:
         nested_settings = dataclasses.replace(settings, propagation=pytrm.Propagation.NESTED)
         with pytest.raises(exceptions.NestedTransactionsNotSupportedTrmException):
-            async with transaction_manager.do(new_context, settings=nested_settings) as new_context2:
+            async with transaction_manager.do(new_context, settings=nested_settings):
                 pass
 
 

@@ -38,6 +38,26 @@ pip install "pytrm[sqlalchemy] @ git+https://github.com/Aleksey1707/pytrm.git@0.
 uv add "pytrm[sqlalchemy] @ git+https://github.com/Aleksey1707/pytrm.git@0.3.0"
 ```
 
+## Реализации
+
+Каждая реализация живёт в своём модуле и тянет драйвер из соответствующего extra.
+Ядро `pytrm` зависимостей от драйверов не имеет.
+
+| БД | Extra | Модуль | Вложенные транзакции |
+|---|---|---|---|
+| PostgreSQL и другие через SQLAlchemy | `sqlalchemy` | `pytrm.impls.sqlalchemy` | да, через `SAVEPOINT` |
+| MongoDB (motor) | `mongo-motor` | `pytrm.impls.mongo.motor` | нет |
+| MongoDB (pymongo, async) | `mongo-pymongo` | `pytrm.impls.mongo.pymongo` | нет |
+| Redis | `redis` | `pytrm.impls.redis` | нет |
+| — (ничего не делает) | — | `pytrm.impls.null` | — |
+
+Реализация без поддержки вложенности бросает `NestedTransactionsNotSupportedTrmException`
+на `Propagation.NESTED`.
+
+У Redis есть особенность: команды внутри блока только накапливаются в pipeline и применяются
+на выходе из него. Прочитать записанное значение внутри того же блока нельзя — для чтения
+нужен отдельный клиент вне транзакции.
+
 ## Использование
 
 Для работы с `pytrm` требуется реализация контекста `pytrm.Context`, который является неизменяемой структурой.
@@ -58,16 +78,18 @@ uv add "pytrm[sqlalchemy] @ git+https://github.com/Aleksey1707/pytrm.git@0.3.0"
 
 ```python
 import pytrm
+from pytrm.impls import sqlalchemy as sa_trm
+from pytrm.impls.mongo import motor as motor_trm
 
 # Настройки для MongoDB
-mongo_settings = pytrm.Settings(
+mongo_settings = pytrm.UniqSettings(
     id="mongo",
     key=pytrm.Key("mongo"),
     propagation=pytrm.Propagation.REQUIRED,
 )
 
 # Настройки для Postgres
-postgres_settings = pytrm.Settings(
+postgres_settings = pytrm.UniqSettings(
     id="postgres",
     key=pytrm.Key("postgres"),
     propagation=pytrm.Propagation.REQUIRED,
@@ -86,14 +108,35 @@ pytrm.configurate(
 # Создание менеджера транзакций для MongoDB
 mongo_connection_url = ...
 mongo_client = AsyncIOMotorClient(mongo_connection_url)
-mongo_trm = pytrm.motor.MongoTransactionManager.create(mongo_client, mongo_settings.id)
+mongo_trm = motor_trm.MongoTransactionManager.create(mongo_client, mongo_settings.id)
 
 # Создание менеджера транзакций для Postgres
 postgres_connection_url = ...
 engine = create_async_engine(url=postgres_connection_url)
 sessionmaker_ = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-postgres_trm = pytrm.sqlalchemy.SqlAlchemyTransactionManager.create(sessionmaker_, postgres_settings.id)
+postgres_trm = sa_trm.SqlAlchemyTransactionManager.create(sessionmaker_, postgres_settings.id)
 ```
+
+## Правила распространения
+
+Правило задаётся в настройках и переопределяется параметром `propagation` у `do()` либо
+у декоратора `transactional_with`.
+
+| Правило | Транзакция в контексте есть | Транзакции нет |
+|---|---|---|
+| `REQUIRED` | переиспользовать существующую | создать новую |
+| `NESTED` | создать вложенную от текущей | создать новую |
+| `MANDATORY` | переиспользовать существующую | `PropagationMandatoryTrmException` |
+| `NEVER` | `PropagationNeverTrmException` | выполнить без транзакции |
+| `NOT_SUPPORTED` | убрать транзакцию из контекста на время блока | выполнить без транзакции |
+| `REQUIRES_NEW` | создать новую, подменив её в контексте | создать новую |
+| `SUPPORTS` | переиспользовать существующую | выполнить без транзакции |
+
+Фиксирует и откатывает транзакцию тот блок, который её начал. Вложенный блок с `REQUIRED`
+ничего не фиксирует — решение принимает внешний. Нужна независимая фиксация — `REQUIRES_NEW`,
+нужен частичный откат — `NESTED`.
+
+Отмена задачи (`asyncio.CancelledError`) откатывает транзакцию, а не оставляет её открытой.
 
 Пример использования менеджера транзакций (императивный стиль):
 
@@ -147,7 +190,7 @@ class PersonMongoRepository:
         if doc is None:
             raise exceptions.PersonNotFoundError
 
-        entity = mappers.person_doc_to_entity(document)
+        entity = mappers.person_doc_to_entity(doc)
         return entity
 
     async def save(self, entity: Person, *, context: Context) -> None:
@@ -169,7 +212,7 @@ class PersonMongoRepository:
 class PersonAppService:
 
     _trm: pytrm.TransactionManager
-    _trm_settings: Optional[pytrm.Settings]
+    _trm_settings: Optional[pytrm.UniqSettings]
     _repo: PersonRepository
 
     @pytrm.transactional

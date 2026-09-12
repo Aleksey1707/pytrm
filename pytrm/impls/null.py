@@ -11,6 +11,7 @@ class NullTransactionManager:
     def do(
         self,
         ctx: share.ContextT,
+        *,
         settings: Optional[share.Settings] = None,
         exclude: Tuple[Type[BaseException], ...] = (),
         propagation: Optional[share.Propagation] = None,
